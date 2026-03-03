@@ -150,12 +150,12 @@ class WOPR:
         if "chess" in user_input.lower():
             self.current_game = "chess"
             self.chess_game = ChessGame()
-            return self._get_random_response("chess")[0]  # "White or black?"
+            return self._get_random_response("chess")
 
         if "war" in user_input.lower() or "nuclear" in user_input.lower():
             self.current_game = "nuclear_war"
             self.nuclear_war_sim = NuclearWarSimulation()
-            return self._get_random_response("nuclear_war")[0]  # "Let's play Global Thermonuclear War."
+            return self._get_random_response("nuclear_war")
 
         # Game interaction
         if self.current_game == "chess" and self.chess_game:
@@ -204,7 +204,7 @@ class WOPR:
         """
         if user_input.lower() in ["yes", "y"]:
             self.learning_mode = True
-            return self._get_random_response("learning")[0]
+            return self._get_random_response("learning")
 
         if user_input.lower() in ["no", "n"]:
             self.learning_mode = False
@@ -225,11 +225,11 @@ class WOPR:
             str: The WOPR's response
         """
         if not self.user:
-            self.user = "Falken"  # Default to movie character
-            return self._get_random_response("greeting")[0]
+            self.user = "Falken"
+            return self._get_random_response("greeting")
 
         if "game" in user_input.lower():
-            return self._get_random_response("game_offer")[0]
+            return self._get_random_response("game_offer")
 
         if "time" in user_input.lower():
             return f"Current system time: {self.system_time}"
@@ -240,7 +240,7 @@ class WOPR:
         if "help" in user_input.lower():
             return "Available commands: chess, war, time, system, help"
 
-        return self._get_random_response("system")[0]
+        return self._get_random_response("system")
 
     def _get_random_response(self, category):
         """
@@ -264,7 +264,7 @@ class ChessGame:
         Initialize a new chess game with standard board setup.
         """
         self.board = self._initialize_board()
-        self.current_player = "WHITE"  # User is WHITE, WOPR is BLACK
+        self.current_player = "WHITE"
         self.game_over = False
         self.move_count = 0
         self.move_history = []
@@ -301,24 +301,20 @@ class ChessGame:
         if self.game_over:
             return "Game over. Would you like to play again?"
 
-        # Simple move parsing (e.g., "e2 e4")
         try:
             from_square, to_square = user_input.split()
             from_row, from_col = 8 - int(from_square[1]), ord(from_square[0]) - ord('a')
             to_row, to_col = 8 - int(to_square[1]), ord(to_square[0]) - ord('a')
 
-            # Validate move
             if not self._is_valid_move(from_row, from_col, to_row, to_col):
                 return "Invalid move. Please try again."
 
-            # Make move
             piece = self.board[from_row][from_col]
             self.board[from_row][from_col] = " "
             self.board[to_row][to_col] = piece
             self.move_history.append((from_square, to_square))
             self.move_count += 1
 
-            # Check for game end
             if self._check_win():
                 self.game_over = True
                 return "Checkmate. I win."
@@ -327,8 +323,7 @@ class ChessGame:
                 self.game_over = True
                 return "Fifty-move rule. Game over."
 
-            # WOPR's turn
-            time.sleep(2)  # Simulate thinking
+            time.sleep(2)
             wopr_move = self._make_ai_move()
             if wopr_move:
                 return f"My move: {wopr_move}. Your turn."
@@ -350,16 +345,13 @@ class ChessGame:
         Returns:
             bool: True if move is valid, False otherwise
         """
-        # Basic validation - in a real implementation this would be more complex
         piece = self.board[from_row][from_col]
         if piece == " ":
             return False
 
-        # Check if moving to same square
         if from_row == to_row and from_col == to_col:
             return False
 
-        # Check if destination is occupied by own piece
         if self.board[to_row][to_col] != " " and piece.isupper() == self.board[to_row][to_col].isupper():
             return False
 
@@ -372,7 +364,6 @@ class ChessGame:
         Returns:
             tuple: The move made by the AI (from_square, to_square) or None
         """
-        # Find all possible moves for black pieces
         possible_moves = []
         for row in range(8):
             for col in range(8):
@@ -392,13 +383,11 @@ class ChessGame:
         if not possible_moves:
             return None
 
-        # Choose a random move
         move = random.choice(possible_moves)
         from_square, to_square = move
         from_row, from_col = 8 - int(from_square[1]), ord(from_square[0]) - ord('a')
         to_row, to_col = 8 - int(to_square[1]), ord(to_square[0]) - ord('a')
 
-        # Make the move
         piece = self.board[from_row][from_col]
         self.board[from_row][from_col] = " "
         self.board[to_row][to_col] = piece
@@ -414,13 +403,15 @@ class ChessGame:
         Returns:
             bool: True if checkmate detected, False otherwise
         """
-        # In a real implementation, this would be more complex
-        # For this demo, we'll just check if king is captured
+        white_king_found = False
         for row in range(8):
             for col in range(8):
-                if self.board[row][col] == "k":
-                    return True
-        return False
+                if self.board[row][col] == "K":
+                    white_king_found = True
+                    break
+            if white_king_found:
+                break
+        return not white_king_found
 
     def _has_pawn_moved(self):
         """
@@ -430,7 +421,7 @@ class ChessGame:
             bool: True if pawn moved, False otherwise
         """
         for move in self.move_history[-50:]:
-            if move[0][1] != move[1][1]:  # Pawn moves forward
+            if move[0][1] != move[1][1]:
                 return True
         return False
 
@@ -444,8 +435,8 @@ class NuclearWarSimulation:
         Initialize a new nuclear war simulation.
         """
         self.countries = {
-            "USA": {"missiles": 5000, "cities": ["New York", "Los Angeles", "Chicago", "Houston", "Philadelphia"]},
-            "USSR": {"missiles": 7000, "cities": ["Moscow", "Leningrad", "Kiev", "Minsk", "Vladimir"]}
+            "USA": {"missiles": 5000, "cities": ["new york", "los angeles", "chicago", "houston", "philadelphia"]},
+            "USSR": {"missiles": 7000, "cities": ["moscow", "leningrad", "kiev", "minsk", "vladimir"]}
         }
         self.game_over = False
         self.turn = "USA"
@@ -466,29 +457,25 @@ class NuclearWarSimulation:
             return "Simulation terminated. Would you like to analyze results?"
 
         try:
-            target = user_input.lower()
-            if target in self.countries[self.turn]["cities"]:
-                # Launch missiles
+            target = user_input.lower().strip()
+            opponent = "USSR" if self.turn == "USA" else "USA"
+            
+            if target in self.countries[opponent]["cities"]:
                 missiles = min(100, self.countries[self.turn]["missiles"])
                 self.countries[self.turn]["missiles"] -= missiles
                 self.target_history.append((self.turn, target))
 
-                # Calculate damage
                 damage = missiles * 0.1
-                for city in self.countries[self.turn]["cities"]:
+                for city in self.countries[opponent]["cities"]:
                     if city != target:
-                        # Secondary effects
                         damage *= 0.3
 
-                # Apply damage to opponent
-                opponent = "USSR" if self.turn == "USA" else "USA"
                 self.countries[opponent]["missiles"] -= int(damage)
 
                 if self.countries[opponent]["missiles"] <= 0:
                     self.game_over = True
                     return f"All missiles detonated. {opponent} has been destroyed. You win."
 
-                # Switch turns
                 self.turn = opponent
                 self.simulation_round += 1
 
@@ -499,9 +486,10 @@ class NuclearWarSimulation:
                 return f"Missiles launched at {target.upper()}. {opponent} turn."
 
             else:
-                return f"Invalid target. Please select from: {', '.join([c.upper() for c in self.countries[self.turn]['cities']])}"
+                return f"Invalid target. Please select from: {', '.join([c.upper() for c in self.countries[opponent]['cities']])}"
         except:
-            return "Invalid command. Please specify target city."
+            opponent = "USSR" if self.turn == "USA" else "USA"
+            return f"Invalid command. Please specify target city from: {', '.join([c.upper() for c in self.countries[opponent]['cities']])}"
 
 def main():
     """
@@ -520,7 +508,7 @@ def main():
         response = wopr.engage(user_input)
         print(response)
 
-        if "WOULD YOU LIKE TO PLAY AGAIN?" in response:
+        if "would you like to play again?" in response.lower():
             play_again = input("> ")
             if play_again.lower() in ["yes", "y"]:
                 wopr.current_game = None
@@ -529,7 +517,7 @@ def main():
                 print("Terminating game session.")
                 wopr.current_game = None
 
-        if "WOULD YOU LIKE TO ANALYZE RESULTS?" in response:
+        if "would you like to analyze results?" in response.lower():
             analyze = input("> ")
             if analyze.lower() in ["yes", "y"]:
                 print("Analyzing simulation results...")
