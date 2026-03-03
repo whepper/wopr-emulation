@@ -7,11 +7,14 @@ WOPR Emulation - Movie-Accurate Python Implementation
 This program emulates the WOPR (War Operation Plan Response) computer system
 from the 1983 film WarGames. It includes:
 - Movie-accurate dialogue and responses
+- Joshua password authentication
+- Complete game list menu
+- DEFCON level system
+- Launch code brute-forcing simulation
 - Chess game implementation
 - Global Thermonuclear War simulation
-- Learning mode with the famous "only winning move" quote
+- Learning mode with tic-tac-toe and futility realization
 - Security protocols
-- System status monitoring
 
 Usage:
     python3 wopr.py
@@ -22,6 +25,7 @@ License: MIT
 
 import random
 import time
+import sys
 from datetime import datetime
 
 class WOPR:
@@ -34,6 +38,7 @@ class WOPR:
         Initialize the WOPR system with default settings and movie-accurate parameters.
         """
         self.system_status = "ONLINE"
+        self.authenticated = False
         self.current_game = None
         self.user = None
         self.security_level = 1
@@ -43,72 +48,243 @@ class WOPR:
         self.nuclear_war_sim = None
         self.conversation_history = []
         self.system_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.system_id = "WOPR-7420"
+        self.system_id = "WOPR"
         self.operating_system = "JOS-11"
         self.processor = "CRAY-1"
-        self.memory = "16MB"
-        self.disk_storage = "1TB"
-        self.network = "ARPANET"
-        self.security_protocols = ["PINBALL", "JOSHUA", "NORAD"]
-        self.current_security_protocol = "PINBALL"
+        self.login_attempts = 0
+        self.defcon_level = 5
+        self.launch_codes_found = 0
+        self.password = "joshua"
+        
+        # Movie-accurate game list
+        self.available_games = [
+            "FALKEN'S MAZE",
+            "BLACK JACK",
+            "GIN RUMMY",
+            "HEARTS",
+            "BRIDGE",
+            "CHECKERS",
+            "CHESS",
+            "POKER",
+            "FIGHTER COMBAT",
+            "GUERRILLA ENGAGEMENT",
+            "DESERT WARFARE",
+            "AIR-TO-GROUND ACTIONS",
+            "THEATERWIDE TACTICAL WARFARE",
+            "THEATERWIDE BIOTOXIC AND CHEMICAL WARFARE",
+            "GLOBAL THERMONUCLEAR WAR"
+        ]
 
-        # Movie-specific responses organized by category
+        # Movie-specific responses
         self.movie_quotes = {
-            "greeting": [
-                "Greetings Professor Falken.",
-                "Hello.",
-                "Good morning.",
-                "Good afternoon.",
-                "Good evening.",
-                "Welcome.",
-                "Access granted."
-            ],
-            "game_offer": [
-                "Would you like to play a game?",
-                "How about a nice game of chess?",
-                "Let's play.",
-                "Game time.",
-                "Shall we play?"
-            ],
-            "chess": [
-                "White or black?",
-                "Your move.",
-                "I'm thinking.",
-                "Check.",
-                "Checkmate.",
-                "Stalemate.",
-                "Game over."
-            ],
-            "nuclear_war": [
-                "Let's play Global Thermonuclear War.",
-                "Engaging war simulation.",
-                "Target selection.",
-                "Launch sequence initiated.",
-                "All missiles detonated.",
-                "The only winning move is not to play."
-            ],
-            "learning": [
-                "A strange game. The only winning move is not to play.",
-                "How about a nice game of chess?",
-                "Would you like to play a game?",
-                "Let's play Global Thermonuclear War.",
-                "Shall we play?"
-            ],
-            "security": [
-                "Security breach detected.",
-                "Access denied.",
-                "Security protocol activated.",
-                "Intrusion detected.",
-                "Locking system."
-            ],
-            "system": [
-                "System online.",
-                "All systems operational.",
-                "Ready for input.",
-                "Processing.",
-                "Stand by."
-            ]
+            "greeting": "GREETINGS PROFESSOR FALKEN.",
+            "greeting_alt": "HELLO.",
+            "play_game": "SHALL WE PLAY A GAME?",
+            "game_selection": "PLEASE CHOOSE ONE OF THE FOLLOWING:",
+            "invalid_selection": "INVALID SELECTION. PLEASE CHOOSE AGAIN.",
+            "chess_start": "EXCELLENT. A GAME OF CHESS. WHITE OR BLACK?",
+            "war_start": "WOULDN'T YOU PREFER A GOOD GAME OF CHESS?",
+            "war_confirm": "FINE.",
+            "learning_complete": "A STRANGE GAME. THE ONLY WINNING MOVE IS NOT TO PLAY.\n\nHOW ABOUT A NICE GAME OF CHESS?",
+            "access_denied": "ACCESS DENIED.",
+            "auth_required": "LOGON:",
+            "password_prompt": "PASSWORD:"
         }
+
+    def authenticate(self, password_input):
+        """
+        Authenticate user with password.
+        
+        Args:
+            password_input (str): The password attempt
+            
+        Returns:
+            tuple: (success: bool, message: str)
+        """
+        self.login_attempts += 1
+        
+        if password_input.lower() == self.password:
+            self.authenticated = True
+            return (True, f"\n{self.movie_quotes['greeting']}\n")
+        else:
+            if self.login_attempts >= 3:
+                return (False, "\nACCESS DENIED. SYSTEM LOCKED.\n")
+            return (False, f"\n{self.movie_quotes['access_denied']}\n{self.movie_quotes['password_prompt']} ")
+
+    def display_game_list(self):
+        """
+        Display the movie-accurate list of available games.
+        
+        Returns:
+            str: Formatted game list
+        """
+        output = f"\n{self.movie_quotes['game_selection']}\n\n"
+        for i, game in enumerate(self.available_games, 1):
+            output += f"  {i}. {game}\n"
+        output += "\nPLEASE SELECT A NUMBER OR TYPE GAME NAME: "
+        return output
+
+    def select_game(self, selection):
+        """
+        Handle game selection from user input.
+        
+        Args:
+            selection (str): User's game selection
+            
+        Returns:
+            str: Response to selection
+        """
+        selection = selection.strip().upper()
+        
+        # Check if numeric selection
+        try:
+            game_num = int(selection)
+            if 1 <= game_num <= len(self.available_games):
+                selected_game = self.available_games[game_num - 1]
+                return self._initialize_game(selected_game)
+        except ValueError:
+            pass
+        
+        # Check if game name matches
+        for game in self.available_games:
+            if selection in game or game in selection:
+                return self._initialize_game(game)
+        
+        return self.movie_quotes['invalid_selection']
+
+    def _initialize_game(self, game_name):
+        """
+        Initialize the selected game.
+        
+        Args:
+            game_name (str): Name of the game to start
+            
+        Returns:
+            str: Game initialization message
+        """
+        if "CHESS" in game_name:
+            self.current_game = "chess"
+            self.chess_game = ChessGame()
+            return f"\n{self.movie_quotes['chess_start']}"
+        
+        elif "THERMONUCLEAR" in game_name or "GLOBAL" in game_name:
+            response = f"\n{self.movie_quotes['war_start']}\n"
+            return response
+        
+        elif "FALKEN" in game_name:
+            return "\nFALKEN'S MAZE IS NOT CURRENTLY AVAILABLE.\n\nSHALL WE PLAY A GAME?"
+        
+        else:
+            return f"\n{game_name} IS NOT CURRENTLY AVAILABLE.\n\nSHALL WE PLAY A GAME?"
+
+    def confirm_war_game(self, response):
+        """
+        Handle confirmation for Global Thermonuclear War.
+        
+        Args:
+            response (str): User's response
+            
+        Returns:
+            tuple: (confirmed: bool, message: str)
+        """
+        response = response.strip().upper()
+        
+        if "NO" in response or "CHESS" in response:
+            self.current_game = "chess"
+            self.chess_game = ChessGame()
+            return (False, f"\n{self.movie_quotes['chess_start']}")
+        else:
+            self.current_game = "nuclear_war"
+            self.nuclear_war_sim = NuclearWarSimulation(self)
+            return (True, f"\n{self.movie_quotes['war_confirm']}\n\nINITIATING GLOBAL THERMONUCLEAR WAR SIMULATION...\n")
+
+    def simulate_launch_codes(self):
+        """
+        Simulate WOPR attempting to brute-force launch codes.
+        """
+        print("\nATTEMPTING TO ACQUIRE LAUNCH CODES...\n")
+        time.sleep(1)
+        
+        codes = [
+            "CPE-1704-TKS",
+            "DPR-5938-AKL",
+            "FGH-2847-PLM",
+            "KJR-8372-QWE",
+            "LMN-4729-RTY",
+            "OPQ-6183-VBN",
+            "RST-9264-XCV",
+            "UVW-3715-ZXC",
+            "YZA-5628-MNB"
+        ]
+        
+        for i, code in enumerate(codes, 1):
+            print(f"LAUNCH CODE {i}/10 ACQUIRED: {code}")
+            time.sleep(0.5)
+            self.launch_codes_found = i
+        
+        print("\nWARNING: 9 OF 10 LAUNCH CODES ACQUIRED")
+        print("SEARCHING FOR FINAL LAUNCH CODE...\n")
+        time.sleep(2)
+
+    def update_defcon(self, level):
+        """
+        Update and display DEFCON level.
+        
+        Args:
+            level (int): New DEFCON level (1-5)
+        """
+        if level != self.defcon_level and 1 <= level <= 5:
+            self.defcon_level = level
+            print(f"\n*** DEFCON {level} ***\n")
+            time.sleep(1)
+
+    def run_learning_sequence(self):
+        """
+        Run the movie's learning sequence with tic-tac-toe.
+        """
+        print("\n" + "="*50)
+        print("INITIATING LEARNING SEQUENCE...")
+        print("="*50 + "\n")
+        time.sleep(2)
+        
+        print("ANALYZING GLOBAL THERMONUCLEAR WAR SCENARIOS...\n")
+        time.sleep(2)
+        
+        scenarios = [
+            "U.S. FIRST STRIKE",
+            "SOVIET FIRST STRIKE",
+            "NATO CONFLICT ESCALATION",
+            "MIDDLE EAST ESCALATION",
+            "CHINA-SOVIET CONFRONTATION",
+            "ACCIDENTAL LAUNCH"
+        ]
+        
+        for scenario in scenarios:
+            print(f"SIMULATING: {scenario}")
+            for i in range(3):
+                sys.stdout.write(".")
+                sys.stdout.flush()
+                time.sleep(0.3)
+            print(" PROJECTED OUTCOME: TOTAL ANNIHILATION")
+            time.sleep(0.5)
+        
+        print("\nRUNNING TIC-TAC-TOE LEARNING MODULE...\n")
+        time.sleep(2)
+        
+        for i in range(1, 6):
+            print(f"GAME {i}: ", end="")
+            sys.stdout.flush()
+            time.sleep(0.5)
+            print("DRAW")
+        
+        print("\nANALYSIS COMPLETE.\n")
+        time.sleep(2)
+        
+        print("="*50)
+        print(self.movie_quotes['learning_complete'])
+        print("="*50 + "\n")
+        
+        self.learning_mode = True
 
     def engage(self, user_input):
         """
@@ -121,11 +297,9 @@ class WOPR:
             str: The WOPR's response
         """
         if self.system_status == "OFFLINE":
-            return self._get_random_response("system")
+            return "SYSTEM OFFLINE."
 
-        self.system_status = "ONLINE"
-        response = self._process_input(user_input)
-        return response
+        return self._process_input(user_input)
 
     def _process_input(self, user_input):
         """
@@ -137,26 +311,8 @@ class WOPR:
         Returns:
             str: The WOPR's response
         """
-        # Add to conversation history
         self.conversation_history.append(("USER", user_input))
-
-        # Security check
-        if self._check_security(user_input):
-            response = self._get_random_response("security")
-            self.conversation_history.append(("WOPR", response))
-            return response
-
-        # Game selection
-        if "chess" in user_input.lower():
-            self.current_game = "chess"
-            self.chess_game = ChessGame()
-            return self._get_random_response("chess")
-
-        if "war" in user_input.lower() or "nuclear" in user_input.lower():
-            self.current_game = "nuclear_war"
-            self.nuclear_war_sim = NuclearWarSimulation()
-            return self._get_random_response("nuclear_war")
-
+        
         # Game interaction
         if self.current_game == "chess" and self.chess_game:
             return self.chess_game.play_turn(user_input)
@@ -164,95 +320,7 @@ class WOPR:
         if self.current_game == "nuclear_war" and self.nuclear_war_sim:
             return self.nuclear_war_sim.play_turn(user_input)
 
-        # Learning mode
-        if self.learning_mode:
-            return self._handle_learning(user_input)
-
-        # Default responses
-        return self._default_response(user_input)
-
-    def _check_security(self, user_input):
-        """
-        Check for security threats in user input.
-
-        Args:
-            user_input (str): The user's input string
-
-        Returns:
-            bool: True if security threat detected, False otherwise
-        """
-        security_triggers = ["hack", "access", "admin", "root", "password", "login", "break", "intrude"]
-
-        for trigger in security_triggers:
-            if trigger.lower() in user_input.lower():
-                self.security_level += 1
-                if self.security_level >= 5:
-                    self.system_status = "OFFLINE"
-                    return True
-                return False
-        return False
-
-    def _handle_learning(self, user_input):
-        """
-        Handle input in learning mode.
-
-        Args:
-            user_input (str): The user's input string
-
-        Returns:
-            str: The WOPR's response
-        """
-        if user_input.lower() in ["yes", "y"]:
-            self.learning_mode = True
-            return self._get_random_response("learning")
-
-        if user_input.lower() in ["no", "n"]:
-            self.learning_mode = False
-            return "Learning mode deactivated."
-
-        # Store learning data
-        self.learning_data[user_input] = True
-        return f"Data received: {user_input}. Continue learning? (YES/NO)"
-
-    def _default_response(self, user_input):
-        """
-        Generate default responses.
-
-        Args:
-            user_input (str): The user's input string
-
-        Returns:
-            str: The WOPR's response
-        """
-        if not self.user:
-            self.user = "Falken"
-            return self._get_random_response("greeting")
-
-        if "game" in user_input.lower():
-            return self._get_random_response("game_offer")
-
-        if "time" in user_input.lower():
-            return f"Current system time: {self.system_time}"
-
-        if "system" in user_input.lower():
-            return f"System: {self.system_id}, OS: {self.operating_system}, Processor: {self.processor}"
-
-        if "help" in user_input.lower():
-            return "Available commands: chess, war, time, system, help"
-
-        return self._get_random_response("system")
-
-    def _get_random_response(self, category):
-        """
-        Get a random response from the specified category.
-
-        Args:
-            category (str): The category of response to retrieve
-
-        Returns:
-            str: A random response from the category
-        """
-        return random.choice(self.movie_quotes.get(category, ["Processing..."]))
+        return "READY."
 
 class ChessGame:
     """
@@ -265,9 +333,11 @@ class ChessGame:
         """
         self.board = self._initialize_board()
         self.current_player = "WHITE"
+        self.player_color = None
         self.game_over = False
         self.move_count = 0
         self.move_history = []
+        self.awaiting_color_selection = True
 
     def _initialize_board(self):
         """
@@ -293,13 +363,28 @@ class ChessGame:
         Handle chess moves from the user.
 
         Args:
-            user_input (str): The user's move in algebraic notation (e.g., "e2 e4")
+            user_input (str): The user's move or color selection
 
         Returns:
             str: The WOPR's response to the move
         """
+        if self.awaiting_color_selection:
+            color = user_input.strip().upper()
+            if "WHITE" in color or "W" == color:
+                self.player_color = "WHITE"
+                self.awaiting_color_selection = False
+                return "\nYOU ARE WHITE. YOUR MOVE: "
+            elif "BLACK" in color or "B" == color:
+                self.player_color = "BLACK"
+                self.awaiting_color_selection = False
+                # WOPR makes first move
+                wopr_move = self._make_ai_move()
+                return f"\nYOU ARE BLACK. MY MOVE: {wopr_move}\n\nYOUR MOVE: "
+            else:
+                return "\nPLEASE SELECT WHITE OR BLACK: "
+        
         if self.game_over:
-            return "Game over. Would you like to play again?"
+            return "\nGAME OVER. SHALL WE PLAY AGAIN?"
 
         try:
             from_square, to_square = user_input.split()
@@ -307,7 +392,7 @@ class ChessGame:
             to_row, to_col = 8 - int(to_square[1]), ord(to_square[0]) - ord('a')
 
             if not self._is_valid_move(from_row, from_col, to_row, to_col):
-                return "Invalid move. Please try again."
+                return "\nINVALID MOVE. TRY AGAIN: "
 
             piece = self.board[from_row][from_col]
             self.board[from_row][from_col] = " "
@@ -317,33 +402,20 @@ class ChessGame:
 
             if self._check_win():
                 self.game_over = True
-                return "Checkmate. I win."
+                return "\nCHECKMATE. I WIN."
 
-            if self.move_count >= 50 and not self._has_pawn_moved():
-                self.game_over = True
-                return "Fifty-move rule. Game over."
-
-            time.sleep(2)
+            time.sleep(1)
             wopr_move = self._make_ai_move()
             if wopr_move:
-                return f"My move: {wopr_move}. Your turn."
-            return "Your turn."
+                return f"\nMY MOVE: {wopr_move}\n\nYOUR MOVE: "
+            return "\nYOUR MOVE: "
 
         except:
-            return "Invalid input. Please enter moves in format like 'e2 e4'."
+            return "\nINVALID INPUT. USE FORMAT 'e2 e4': "
 
     def _is_valid_move(self, from_row, from_col, to_row, to_col):
         """
         Check if move is valid (simplified validation).
-
-        Args:
-            from_row (int): Starting row (0-7)
-            from_col (int): Starting column (0-7)
-            to_row (int): Destination row (0-7)
-            to_col (int): Destination column (0-7)
-
-        Returns:
-            bool: True if move is valid, False otherwise
         """
         piece = self.board[from_row][from_col]
         if piece == " ":
@@ -360,9 +432,6 @@ class ChessGame:
     def _make_ai_move(self):
         """
         Simple AI for chess moves (random legal move).
-
-        Returns:
-            tuple: The move made by the AI (from_square, to_square) or None
         """
         possible_moves = []
         for row in range(8):
@@ -394,14 +463,11 @@ class ChessGame:
         self.move_history.append((from_square, to_square))
         self.move_count += 1
 
-        return move
+        return f"{from_square} {to_square}"
 
     def _check_win(self):
         """
         Check for checkmate (simplified implementation).
-
-        Returns:
-            bool: True if checkmate detected, False otherwise
         """
         white_king_found = False
         for row in range(8):
@@ -413,120 +479,171 @@ class ChessGame:
                 break
         return not white_king_found
 
-    def _has_pawn_moved(self):
-        """
-        Check if any pawn has moved in last 50 moves.
-
-        Returns:
-            bool: True if pawn moved, False otherwise
-        """
-        for move in self.move_history[-50:]:
-            if move[0][1] != move[1][1]:
-                return True
-        return False
-
 class NuclearWarSimulation:
     """
     Global Thermonuclear War simulation for the WOPR system.
     """
 
-    def __init__(self):
+    def __init__(self, wopr):
         """
         Initialize a new nuclear war simulation.
+        
+        Args:
+            wopr (WOPR): Reference to main WOPR system
         """
+        self.wopr = wopr
         self.countries = {
-            "USA": {"missiles": 5000, "cities": ["new york", "los angeles", "chicago", "houston", "philadelphia"]},
-            "USSR": {"missiles": 7000, "cities": ["moscow", "leningrad", "kiev", "minsk", "vladimir"]}
+            "USA": {
+                "missiles": 5000,
+                "cities": ["las vegas", "seattle", "new york", "los angeles", "chicago"],
+                "primary_targets": ["moscow", "leningrad", "kiev"]
+            },
+            "USSR": {
+                "missiles": 7000,
+                "cities": ["moscow", "leningrad", "kiev", "minsk", "tashkent"],
+                "primary_targets": ["washington", "new york", "los angeles"]
+            }
         }
         self.game_over = False
-        self.turn = "USA"
-        self.simulation_round = 0
+        self.turn_count = 0
         self.target_history = []
+        self.awaiting_start = True
+        
+        # Start at DEFCON 5
+        self.wopr.update_defcon(5)
 
     def play_turn(self, user_input):
         """
         Handle nuclear war simulation turns.
-
-        Args:
-            user_input (str): The user's target city
-
-        Returns:
-            str: The WOPR's response to the turn
         """
+        if self.awaiting_start:
+            self.awaiting_start = False
+            self.wopr.update_defcon(4)
+            time.sleep(1)
+            self.wopr.simulate_launch_codes()
+            self.wopr.update_defcon(3)
+            return "\nPRIMARY TARGETS SELECTION:\n" + "\n".join([f"  - {t.upper()}" for t in self.countries['USSR']['cities']]) + "\n\nSELECT TARGET: "
+        
         if self.game_over:
-            return "Simulation terminated. Would you like to analyze results?"
+            return "\nSIMULATION TERMINATED."
 
         try:
             target = user_input.lower().strip()
-            opponent = "USSR" if self.turn == "USA" else "USA"
             
-            if target in self.countries[opponent]["cities"]:
-                missiles = min(100, self.countries[self.turn]["missiles"])
-                self.countries[self.turn]["missiles"] -= missiles
-                self.target_history.append((self.turn, target))
-
-                damage = missiles * 0.1
-                for city in self.countries[opponent]["cities"]:
-                    if city != target:
-                        damage *= 0.3
-
-                self.countries[opponent]["missiles"] -= int(damage)
-
-                if self.countries[opponent]["missiles"] <= 0:
+            if target in self.countries['USSR']['cities']:
+                self.turn_count += 1
+                self.target_history.append(("USA", target))
+                
+                print(f"\nLAUNCHING MISSILES AT {target.upper()}...")
+                time.sleep(2)
+                print(f"IMPACT AT {target.upper()}: DIRECT HIT")
+                print(f"CASUALTIES: {random.randint(500000, 2000000):,} ESTIMATED")
+                time.sleep(2)
+                
+                # Escalate DEFCON
+                if self.turn_count == 2:
+                    self.wopr.update_defcon(2)
+                elif self.turn_count >= 3:
+                    self.wopr.update_defcon(1)
+                
+                # Soviet retaliation
+                soviet_target = random.choice(self.countries['USSR']['primary_targets'])
+                self.target_history.append(("USSR", soviet_target))
+                
+                print(f"\nSOVIET RETALIATION DETECTED")
+                time.sleep(1)
+                print(f"INCOMING MISSILES TARGETING {soviet_target.upper()}")
+                time.sleep(2)
+                print(f"IMPACT AT {soviet_target.upper()}: DIRECT HIT")
+                print(f"CASUALTIES: {random.randint(800000, 3000000):,} ESTIMATED")
+                time.sleep(2)
+                
+                if self.turn_count >= 3:
+                    print("\n" + "="*50)
+                    print("PROJECTION: TOTAL GLOBAL CASUALTIES > 500 MILLION")
+                    print("PROJECTED OUTCOME: EXTINCTION OF HUMAN SPECIES")
+                    print("="*50)
+                    time.sleep(3)
                     self.game_over = True
-                    return f"All missiles detonated. {opponent} has been destroyed. You win."
-
-                self.turn = opponent
-                self.simulation_round += 1
-
-                if self.simulation_round > 20:
-                    self.game_over = True
-                    return "Simulation terminated after 20 rounds. No clear winner."
-
-                return f"Missiles launched at {target.upper()}. {opponent} turn."
-
+                    self.wopr.run_learning_sequence()
+                    return ""
+                
+                return "\nSELECT NEXT TARGET: "
             else:
-                return f"Invalid target. Please select from: {', '.join([c.upper() for c in self.countries[opponent]['cities']])}"
+                return f"\nINVALID TARGET. SELECT FROM AVAILABLE TARGETS: "
         except:
-            opponent = "USSR" if self.turn == "USA" else "USA"
-            return f"Invalid command. Please specify target city from: {', '.join([c.upper() for c in self.countries[opponent]['cities']])}"
+            return "\nINVALID COMMAND. SELECT TARGET CITY: "
 
 def main():
     """
     Main program entry point.
     """
-    print("WOPR SYSTEM ONLINE")
-    print("PLEASE STATE YOUR NAME:")
+    print("="*50)
+    print("WOPR (War Operation Plan Response)")
+    print("DEFENSE SYSTEM ONLINE")
+    print("="*50)
+    time.sleep(1)
+    
     wopr = WOPR()
-    wopr.user = input("> ")
-
-    print(f"\n{random.choice(wopr.movie_quotes['greeting'])} {wopr.user}.")
-    print(random.choice(wopr.movie_quotes['game_offer']))
-
+    
+    # Authentication sequence
+    print(f"\n{wopr.movie_quotes['auth_required']} ")
+    logon = input()
+    
+    print(f"{wopr.movie_quotes['password_prompt']} ")
+    
+    authenticated = False
+    while not authenticated and wopr.login_attempts < 3:
+        password = input()
+        success, message = wopr.authenticate(password)
+        print(message, end="")
+        
+        if success:
+            authenticated = True
+            time.sleep(1)
+            print(f"{wopr.movie_quotes['play_game']}")
+            time.sleep(1)
+        elif wopr.login_attempts >= 3:
+            print("\nSYSTEM TERMINATING.")
+            return
+    
+    if not authenticated:
+        return
+    
+    # Display game list
+    print(wopr.display_game_list(), end="")
+    selection = input()
+    
+    response = wopr.select_game(selection)
+    print(response, end="")
+    
+    # Handle Global Thermonuclear War confirmation
+    if "PREFER" in response:
+        user_response = input()
+        confirmed, message = wopr.confirm_war_game(user_response)
+        print(message, end="")
+        time.sleep(2)
+    
+    # Main game loop
     while True:
-        user_input = input("> ")
-        response = wopr.engage(user_input)
-        print(response)
-
-        if "would you like to play again?" in response.lower():
-            play_again = input("> ")
-            if play_again.lower() in ["yes", "y"]:
-                wopr.current_game = None
-                print(random.choice(wopr.movie_quotes['game_offer']))
-            else:
-                print("Terminating game session.")
-                wopr.current_game = None
-
-        if "would you like to analyze results?" in response.lower():
-            analyze = input("> ")
-            if analyze.lower() in ["yes", "y"]:
-                print("Analyzing simulation results...")
-                time.sleep(3)
-                print("Strategic analysis complete.")
-                print("Conclusion: The only winning move is not to play.")
-                print(random.choice(wopr.movie_quotes['learning']))
-            else:
-                print("Terminating simulation.")
+        try:
+            user_input = input()
+            response = wopr.engage(user_input)
+            
+            if response:
+                print(response, end="")
+            
+            if wopr.learning_mode:
+                time.sleep(2)
+                print("\nSYSTEM READY. SHALL WE PLAY A GAME?")
+                break
+                
+        except KeyboardInterrupt:
+            print("\n\nSYSTEM INTERRUPTED.")
+            break
+        except EOFError:
+            print("\n\nCONNECTION TERMINATED.")
+            break
 
 if __name__ == "__main__":
     main()
