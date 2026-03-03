@@ -7,7 +7,7 @@
 War Operation Plan Response
 ```
 
-A faithful Python implementation of the WOPR computer system from the iconic 1983 film **WarGames**. Relive the classic movie experience with authentic dialogue, the Joshua password backdoor, DEFCON escalation, and the famous conclusion that "the only winning move is not to play."
+A faithful Python implementation of the WOPR computer system from the iconic 1983 film **WarGames**. Relive the classic movie experience with authentic dialogue, the Joshua password backdoor, DEFCON escalation, a global command interface, tic-tac-toe self-play, and the famous conclusion that "the only winning move is not to play."
 
 ## 🎬 About the Movie
 
@@ -19,7 +19,9 @@ This emulation recreates the key moments from the film:
 
 - **🔐 Joshua Password Authentication** - The backdoor password from the movie
 - **🎮 Complete Game Menu** - All 15 games from WOPR's original list
+- **⌨️ Global Command Interface** - `help`, `list games`, `play <game>` work at any time
 - **♟️ Chess Game** - Play chess with WOPR, as Professor Falken intended
+- **❎ Tic-Tac-Toe Self-Play** - Not on the list, but it runs anyway — with 0-player autoplay
 - **☢️ Global Thermonuclear War Simulation** - The infamous war game
 - **🚨 DEFCON Level System** - Watch tensions escalate from DEFCON 5 to 1
 - **🔢 Launch Code Acquisition** - Witness WOPR cracking 9 of 10 launch codes
@@ -59,9 +61,9 @@ PASSWORD: joshua
 WOPR will present you with 15 available games:
 
 ```
-1. FALKEN'S MAZE
-2. BLACK JACK
-3. GIN RUMMY
+ 1. FALKEN'S MAZE
+ 2. BLACK JACK
+ 3. GIN RUMMY
 ...
 15. GLOBAL THERMONUCLEAR WAR
 ```
@@ -124,7 +126,7 @@ Witness the strike, casualty estimates, and Soviet retaliation.
 
 After multiple exchanges, WOPR initiates its learning sequence:
 - Analyzes all nuclear war scenarios
-- Runs tic-tac-toe simulations to understand futility
+- Runs tic-tac-toe self-play games to understand futility
 - Reaches its famous conclusion
 
 ```
@@ -135,11 +137,67 @@ HOW ABOUT A NICE GAME OF CHESS?
 
 💡 **Movie Fact**: This is one of the most famous movie quotes about nuclear war, teaching that some conflicts cannot be won and should not be fought.
 
+## ⌨️ Global Commands
+
+These commands can be typed **at any time** — during a game, mid-simulation, or at the main prompt. Just like in the film, the system always responds.
+
+| Command | Description |
+|---|---|
+| `help` | Show all available commands |
+| `help games` | Explain what WOPR's "games" catalogue refers to |
+| `list games` | Display the full 15-game list at any time |
+| `play <name>` | Start a game by name (e.g., `play chess`) |
+| `play <number>` | Start a game by its list number (e.g., `play 15`) |
+| `chess` | Start chess directly |
+| `global thermonuclear war` | Start the war simulation directly |
+| `tic-tac-toe` | Launch tic-tac-toe (see below) |
+
+💡 **Movie Fact**: In the film, David types `list games` and `help games` to explore the system before selecting Global Thermonuclear War. These commands now work even if you are already inside a simulation.
+
+## ❎ Tic-Tac-Toe
+
+Tic-tac-toe is **not on the official game list** — but you can run it anyway, just like in the movie.
+
+```
+> tic-tac-toe
+
+TIC-TAC-TOE
+
+   |   |
+---+---+---
+   |   |
+---+---+---
+   |   |
+
+ONE OR TWO PLAYERS?
+PLEASE LIST NUMBER OF PLAYERS:
+> 0
+```
+
+Entering **0** triggers WOPR's self-play mode: it plays both sides using a perfect minimax-style AI, producing a long string of draws — exactly the realisation the movie builds to.
+
+```
+GAME 1:
+ X |   |
+---+---+---
+   | O |
+---+---+---
+   |   | X
+  DRAW
+
+GAME 2:
+...
+```
+
+After the self-play sequence completes, WOPR automatically enters the **Learning Sequence**, running through all nuclear war scenarios before delivering its famous conclusion.
+
+💡 **Movie Fact**: "Is there any way to make it play itself?" / "Number of players: zero." The self-play sequence is how WOPR learns that tic-tac-toe — like thermonuclear war — can never be won with optimal play from both sides.
+
 ## 🎯 Alternative Paths
 
 ### Play Chess Instead
 
-Select option **7** (CHESS) from the game menu:
+Select option **7** (CHESS) from the game menu, type `chess`, or use `play chess`:
 ```
 EXCELLENT. A GAME OF CHESS. WHITE OR BLACK?
 ```
@@ -152,7 +210,7 @@ MY MOVE: e7 e5
 
 ### Explore Other Games
 
-Many games in WOPR's database are "not currently available" - just like in the movie. Try selecting different options to see WOPR's responses!
+Many games in WOPR's database are "not currently available" — just like in the movie. Try selecting different options to see WOPR's responses!
 
 ## 🎭 Movie Quotes Included
 
@@ -166,31 +224,48 @@ Many games in WOPR's database are "not currently available" - just like in the m
 
 ### Architecture
 
-- **WOPR Class**: Main system controller handling authentication, game selection, and coordination
+- **WOPR Class**: Main system controller handling authentication, command parsing, game selection, and coordination
 - **ChessGame Class**: Implements basic chess rules and AI opponent
 - **NuclearWarSimulation Class**: Manages war game scenarios, DEFCON levels, and learning sequence
+- **TicTacToe Class**: Self-play engine using minimax-lite AI; drives the learning sequence
+
+### Global Command Parser
+
+All user input passes through a two-stage pipeline:
+
+1. **Global commands** are checked first — these intercept input regardless of the currently active game. `list games`, `help`, `tic-tac-toe`, and `play <game>` are always available.
+2. **Game routing** — if no global command matched, input is forwarded to the active game (`chess`, `nuclear_war`, or `tictactoe`).
+
+This mirrors the film's implication that certain system commands are never locked out.
 
 ### Game Mechanics
 
 **Chess**:
-- Standard 8x8 board with full piece set
+- Standard 8×8 board with full piece set
 - Simplified move validation
-- Random AI opponent
-- Algebraic notation (e.g., "e2 e4")
+- Random-legal-move AI opponent
+- Choose White or Black; WOPR opens if you play Black
+- Algebraic notation input (e.g., `e2 e4`)
+
+**Tic-Tac-Toe**:
+- 0-player self-play using minimax-lite (win → block → center → corner → side)
+- Prints board state after every move
+- All games end in draws with perfect play from both sides
+- Self-play automatically triggers the learning sequence on completion
 
 **Global Thermonuclear War**:
 - Target selection from Soviet cities
-- Automatic Soviet retaliation
-- Casualty projections
-- DEFCON escalation system
-- Learning sequence triggering
+- Automatic Soviet retaliation with randomised targets
+- Casualty projections per strike
+- DEFCON escalation across three strike rounds
+- Learning sequence triggers after round 3
 
 ## 🎓 Educational Value
 
 This emulation serves as:
 
 - **Historical Reference**: Experience computing and Cold War culture from 1983
-- **Programming Example**: Study game logic, state management, and user interaction
+- **Programming Example**: Study game logic, state machines, and command parsing
 - **Peace Education**: Understand the anti-nuclear war message through interactive experience
 - **Retro Computing**: Appreciate the command-line interface aesthetic
 
@@ -203,20 +278,21 @@ This emulation serves as:
 - The NORAD scenes were filmed in a real military command center
 - "Joshua" was chosen as the password for its emotional connection to Falken
 
-### Implementation Details
+### Implementation Notes
 
 This Python implementation aims for **experience accuracy** over technical accuracy:
 
 - **Simplified Chess**: Full chess rules would require thousands of lines; we use simplified validation
 - **Accelerated Timeline**: Real nuclear simulations took hours; ours takes minutes
-- **Random AI**: WOPR's actual AI would be more sophisticated
+- **Minimax-lite AI**: WOPR's tic-tac-toe AI plays optimally (center → corner → side); both sides draw every game
 - **Terminal-based**: The original used custom graphics terminals
 
 ## 🐛 Known Limitations
 
 - Chess AI uses random legal moves (not strategic)
-- Move validation is simplified
-- No network multiplayer (WOPR was standalone)
+- Chess move validation is simplified (no castling, en passant, or promotion)
+- Tic-tac-toe supports 0 players only; human-vs-WOPR not yet implemented
+- No network multiplayer
 - No graphics beyond ASCII art
 
 ## 🤝 Contributing
@@ -224,12 +300,13 @@ This Python implementation aims for **experience accuracy** over technical accur
 Contributions are welcome! Areas for enhancement:
 
 - [ ] More sophisticated chess AI
+- [ ] Human-playable tic-tac-toe (1 or 2 player modes)
 - [ ] Additional game implementations (Falken's Maze, etc.)
 - [ ] Sound effects and audio quotes
 - [ ] Enhanced ASCII graphics/animations
 - [ ] Save/load game states
 - [ ] More detailed nuclear simulation
-- [ ] Terminal color support
+- [ ] Terminal colour support
 
 ## 📜 License
 
