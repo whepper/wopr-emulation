@@ -13,7 +13,7 @@ from the 1983 film WarGames. It includes:
 - DEFCON level system
 - Launch code brute-forcing simulation
 - Chess game implementation
-- Tic-tac-toe with 0-player self-play mode
+- Tic-tac-toe with 0-player self-play, 1-player vs WOPR, and 2-player modes
 - Global Thermonuclear War simulation
 - Learning mode with futility realization sequence
 
@@ -39,29 +39,40 @@ _QUIT = object()
 
 class TicTacToe:
     """
-    Tic-tac-toe implementation.  Supports 0-player (self-play) mode as seen
-    in the WarGames climax: WOPR plays itself into repeated draws, leading to
-    the 'only winning move is not to play' realisation.
+    Tic-tac-toe implementation.
+
+    Modes:
+      0 players  - WOPR self-play, ends in draws, triggers learning sequence
+      1 player   - Human (X) vs WOPR (O); WOPR plays optimally
+      2 players  - Human X vs Human O, alternating turns
     """
 
     def __init__(self, wopr):
         self.wopr = wopr
         self.awaiting_players = True
-        self.players = None
+        self.players = None          # 0 / 1 / 2
+        self.board = [" "] * 9
+        self.turn = 0                # 0 = X, 1 = O
+        self.game_over = False
 
-    def _blank_board(self):
-        return [" "] * 9
+    # ------------------------------------------------------------------
+    # Board helpers
+    # ------------------------------------------------------------------
 
-    def _render(self, b):
+    def _render(self, b=None):
+        b = b or self.board
+        def cell(i):
+            return b[i] if b[i] != " " else str(i + 1)
         return (
-            f"\n {b[0]} | {b[1]} | {b[2]}\n"
+            f"\n {cell(0)} | {cell(1)} | {cell(2)}\n"
             f"---+---+---\n"
-            f" {b[3]} | {b[4]} | {b[5]}\n"
+            f" {cell(3)} | {cell(4)} | {cell(5)}\n"
             f"---+---+---\n"
-            f" {b[6]} | {b[7]} | {b[8]}\n"
+            f" {cell(6)} | {cell(7)} | {cell(8)}\n"
         )
 
-    def _winner(self, b):
+    def _winner(self, b=None):
+        b = b or self.board
         for i, j, k in [
             (0,1,2),(3,4,5),(6,7,8),
             (0,3,6),(1,4,7),(2,5,8),
@@ -70,6 +81,10 @@ class TicTacToe:
             if b[i] != " " and b[i] == b[j] == b[k]:
                 return b[i]
         return None
+
+    def _is_full(self, b=None):
+        b = b or self.board
+        return " " not in b
 
     def _best_move(self, b, me, opp):
         """Minimax-lite: win, block, center, corner, side."""
@@ -97,9 +112,12 @@ class TicTacToe:
                 return idx
         return None
 
-    def _play_one_game(self, delay=0.2):
-        """Play a single game between two perfect AIs, printing each move."""
-        b = self._blank_board()
+    # ------------------------------------------------------------------
+    # 0-player autoplay (used by learning sequence)
+    # ------------------------------------------------------------------
+
+    def _play_one_game(self, b, delay=0.2):
+        """Play a single 0-player game on a fresh board; returns winner or None."""
         symbols = ["X", "O"]
         turn = 0
         while True:
@@ -116,7 +134,7 @@ class TicTacToe:
             if " " not in b:
                 break
             turn += 1
-        return None  # draw
+        return None
 
     def _autoplay(self, games=12, delay=0.15):
         """Run `games` self-play games; all end in draws with perfect play."""
@@ -124,25 +142,64 @@ class TicTacToe:
         time.sleep(1)
         for g in range(1, games + 1):
             print(f"GAME {g}:")
-            winner = self._play_one_game(delay=delay)
+            b = [" "] * 9
+            winner = self._play_one_game(b, delay=delay)
             if winner:
                 print(f"  WINNER: {winner}\n")
             else:
                 print("  DRAW\n")
             time.sleep(0.3)
 
+    # ------------------------------------------------------------------
+    # Human-game helpers
+    # ------------------------------------------------------------------
+
+    def _current_symbol(self):
+        return "X" if self.turn % 2 == 0 else "O"
+
+    def _prompt_move(self):
+        sym = self._current_symbol()
+        if self.players == 1:
+            label = "YOUR" if sym == "X" else "MY"
+        else:
+            label = f"PLAYER {1 if sym == 'X' else 2} ({sym})"
+        return f"{label} MOVE (1-9): "
+
+    def _apply_move(self, cell_str):
+        """Validate and apply a human move. Returns error string or None."""
+        try:
+            idx = int(cell_str.strip()) - 1
+        except ValueError:
+            return "INVALID INPUT. ENTER A NUMBER 1-9: "
+        if not (0 <= idx <= 8):
+            return "NUMBER MUST BE 1-9: "
+        if self.board[idx] != " ":
+            return "SQUARE ALREADY TAKEN. CHOOSE ANOTHER: "
+        self.board[idx] = self._current_symbol()
+        return None
+
+    # ------------------------------------------------------------------
+    # Main play_turn dispatcher
+    # ------------------------------------------------------------------
+
     def play_turn(self, user_input):
-        # First call (empty string from engine): show board + ask players
+        """Called by the WOPR engine for each user input."""
+
+        # ---- Step 1: ask player count --------------------------------
         if self.awaiting_players:
             self.awaiting_players = False
             return (
                 "\nTIC-TAC-TOE\n"
-                + self._render(self._blank_board())
-                + "\nONE OR TWO PLAYERS?\n"
+                + self._render([" "] * 9)
+
+                + "  1  2  3\n"
+                  "  4  5  6\n"
+                  "  7  8  9\n"
+                  "\nONE OR TWO PLAYERS? (0 = WOPR SELF-PLAY)\n"
                   "PLEASE LIST NUMBER OF PLAYERS: "
             )
 
-        # Second call: receive player count
+        # ---- Step 2: receive player count ----------------------------
         if self.players is None:
             s = user_input.strip()
             if s not in ("0", "1", "2"):
@@ -150,7 +207,6 @@ class TicTacToe:
             self.players = int(s)
 
             if self.players == 0:
-                # Self-play: runs inline, then triggers learning sequence
                 self._autoplay()
                 print("\nANALYSIS COMPLETE.\n")
                 time.sleep(1)
@@ -158,10 +214,93 @@ class TicTacToe:
                 self.wopr.current_game = None
                 self.wopr.tictactoe = None
                 return ""
-            else:
-                return "\nSORRY, HUMAN-PLAYER TIC-TAC-TOE IS NOT AVAILABLE.\nTRY NUMBER OF PLAYERS: 0\n"
 
-        return ""
+            if self.players == 1:
+                return (
+                    "\nYOU ARE X. I AM O.\n"
+                    + self._render()
+                    + "\n" + self._prompt_move()
+                )
+            # 2 players
+            return (
+                "\nPLAYER 1 = X  |  PLAYER 2 = O\n"
+                + self._render()
+                + "\n" + self._prompt_move()
+            )
+
+        # ---- Step 3: game already over? ------------------------------
+        if self.game_over:
+            s = user_input.strip().upper()
+            if "YES" in s or s in ("Y", "1"):
+                # Reset for a new game
+                self.board = [" "] * 9
+                self.turn = 0
+                self.game_over = False
+                return (
+                    "\nNEW GAME.\n"
+                    + self._render()
+                    + "\n" + self._prompt_move()
+                )
+            # Return to main prompt
+            self.wopr.current_game = None
+            self.wopr.tictactoe = None
+            return "\nRETURNING TO MAIN MENU.\n"
+
+        # ---- Step 4: 1-player — WOPR's turn (X just moved) ----------
+        # In 1-player mode, after a human move we immediately compute
+        # WOPR's reply and return both in one string.
+
+        # ---- Step 5: handle human input ------------------------------
+        sym = self._current_symbol()
+
+        # In 1-player mode only X is human
+        if self.players == 1 and sym == "O":
+            # Shouldn't reach here; defensive guard
+            pass
+        else:
+            err = self._apply_move(user_input)
+            if err:
+                return "\n" + err
+
+            self.turn += 1
+            winner = self._winner()
+            if winner:
+                self.game_over = True
+                result = "YOU WIN!" if (self.players == 1 and winner == "X") else f"{winner} WINS!"
+                return self._render() + f"\n{result}\n\nPLAY AGAIN? (YES/NO): "
+            if self._is_full():
+                self.game_over = True
+                return self._render() + "\nDRAW.\n\nPLAY AGAIN? (YES/NO): "
+
+        # ---- Step 6: WOPR's move in 1-player mode --------------------
+        if self.players == 1:
+            time.sleep(0.6)
+            mv = self._best_move(self.board, "O", "X")
+            if mv is not None:
+                self.board[mv] = "O"
+                self.turn += 1
+                winner = self._winner()
+                wopr_cell = mv + 1
+                if winner:
+                    self.game_over = True
+                    return (
+                        self._render()
+                        + f"\nMY MOVE: {wopr_cell}\nI WIN.\n\nPLAY AGAIN? (YES/NO): "
+                    )
+                if self._is_full():
+                    self.game_over = True
+                    return (
+                        self._render()
+                        + f"\nMY MOVE: {wopr_cell}\nDRAW.\n\nPLAY AGAIN? (YES/NO): "
+                    )
+                return (
+                    self._render()
+                    + f"\nMY MOVE: {wopr_cell}\n\n"
+                    + self._prompt_move()
+                )
+
+        # ---- Step 7: 2-player — prompt next human --------------------
+        return self._render() + "\n" + self._prompt_move()
 
 
 # ---------------------------------------------------------------------------
@@ -325,7 +464,6 @@ class NuclearWarSimulation:
 
         target = user_input.lower().strip()
 
-        # Allow list games even mid-simulation (handled upstream, but guard here too)
         if target in ("list games", "games", "list"):
             return self.wopr.display_game_list()
 
@@ -364,7 +502,6 @@ class NuclearWarSimulation:
             time.sleep(3)
             self.game_over = True
             self.wopr.run_learning_sequence()
-            # Reset game state so the main loop returns to the prompt
             self.wopr.current_game = None
             self.wopr.nuclear_war_sim = None
             self.wopr.defcon_level = 5
@@ -599,7 +736,7 @@ class WOPR:
                 "  LIST GAMES          - Show full game list\n"
                 "  PLAY <GAME NAME>    - Start a game by name\n"
                 "  PLAY <NUMBER>       - Start a game by number\n"
-                "  TIC-TAC-TOE         - Run tic-tac-toe (0-player self-play)\n"
+                "  TIC-TAC-TOE         - Run tic-tac-toe (0, 1, or 2 players)\n"
                 "  CHESS               - Start chess directly\n"
                 "  GLOBAL THERMONUCLEAR WAR - Start the war simulation\n"
                 "  QUIT / LOGOFF       - Disconnect from WOPR\n\n"
