@@ -9,7 +9,7 @@ from the 1983 film WarGames. It includes:
 - Movie-accurate dialogue and responses
 - Joshua password authentication
 - Complete game list menu
-- Global command parser: help, list games, play <game>
+- Global command parser: help, list games, play <game>, quit
 - DEFCON level system
 - Launch code brute-forcing simulation
 - Chess game implementation
@@ -28,6 +28,9 @@ import random
 import time
 import sys
 from datetime import datetime
+
+# Sentinel returned by _process_input() to signal the main loop to exit.
+_QUIT = object()
 
 
 # ---------------------------------------------------------------------------
@@ -361,6 +364,10 @@ class NuclearWarSimulation:
             time.sleep(3)
             self.game_over = True
             self.wopr.run_learning_sequence()
+            # Reset game state so the main loop returns to the prompt
+            self.wopr.current_game = None
+            self.wopr.nuclear_war_sim = None
+            self.wopr.defcon_level = 5
             return ""
 
         return "\nSELECT NEXT TARGET: "
@@ -483,16 +490,14 @@ class WOPR:
     def confirm_war_game(self, response):
         """
         Called after WOPR asks "WOULDN'T YOU PREFER A GOOD GAME OF CHESS?"
-        The question is a deterrent: YES / CHESS => play chess instead.
+        YES / CHESS => play chess instead.
         NO (or anything else) => proceed with thermonuclear war.
         """
         r = response.strip().upper()
         if "YES" in r or "CHESS" in r:
-            # User accepted the offer to play chess instead
             self.current_game = "chess"
             self.chess_game = ChessGame()
             return (False, f"\n{self.movie_quotes['chess_start']}")
-        # User declined (said NO, or anything else) => start the war
         self.current_game = "nuclear_war"
         self.nuclear_war_sim = NuclearWarSimulation(self)
         return (True, f"\n{self.movie_quotes['war_confirm']}\n\nINITIATING GLOBAL THERMONUCLEAR WAR SIMULATION...\n")
@@ -562,6 +567,7 @@ class WOPR:
         print(self.movie_quotes["learning_complete"])
         print("=" * 50 + "\n")
 
+        # Mark learning complete but do NOT exit — return to main prompt.
         self.learning_mode = True
 
     # ------------------------------------------------------------------
@@ -581,6 +587,11 @@ class WOPR:
         # ----------------------------------------------------------
         # Global commands — work at ALL times (even mid-game)
         # ----------------------------------------------------------
+
+        # Quit / logoff — returns the _QUIT sentinel to the main loop
+        if low in ("quit", "exit", "logoff", "logout", "bye"):
+            return _QUIT
+
         if low == "help":
             return (
                 "\nAVAILABLE COMMANDS:\n"
@@ -590,7 +601,8 @@ class WOPR:
                 "  PLAY <NUMBER>       - Start a game by number\n"
                 "  TIC-TAC-TOE         - Run tic-tac-toe (0-player self-play)\n"
                 "  CHESS               - Start chess directly\n"
-                "  GLOBAL THERMONUCLEAR WAR - Start the war simulation\n\n"
+                "  GLOBAL THERMONUCLEAR WAR - Start the war simulation\n"
+                "  QUIT / LOGOFF       - Disconnect from WOPR\n\n"
             )
 
         if low == "help games":
@@ -699,17 +711,28 @@ def main():
     if "PREFER" in response:
         wopr.pending_war_confirmation = True
 
-    # Main game loop — all further input routes through engage()
+    # Main game loop — all further input routes through engage().
+    # Exits only when _QUIT sentinel is returned or connection is lost.
     while True:
         try:
             user_input = input()
             response = wopr.engage(user_input)
+
+            if response is _QUIT:
+                print("\nGOODBYE.\n")
+                break
+
+            # After the learning sequence: reset and show the prompt again
+            if wopr.learning_mode:
+                wopr.learning_mode = False
+                wopr.current_game = None
+                print(f"\n{wopr.movie_quotes['play_game']}\n")
+                print(wopr.display_game_list(), end="")
+                continue
+
             if response:
                 print(response, end="")
-            if wopr.learning_mode:
-                time.sleep(2)
-                print("\nSYSTEM READY. SHALL WE PLAY A GAME?")
-                break
+
         except KeyboardInterrupt:
             print("\n\nSYSTEM INTERRUPTED.")
             break
