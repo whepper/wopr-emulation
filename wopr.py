@@ -481,11 +481,18 @@ class WOPR:
         return f"\n{game_name} IS NOT CURRENTLY AVAILABLE.\n\nSHALL WE PLAY A GAME?"
 
     def confirm_war_game(self, response):
+        """
+        Called after WOPR asks "WOULDN'T YOU PREFER A GOOD GAME OF CHESS?"
+        The question is a deterrent: YES / CHESS => play chess instead.
+        NO (or anything else) => proceed with thermonuclear war.
+        """
         r = response.strip().upper()
-        if "NO" in r or "CHESS" in r:
+        if "YES" in r or "CHESS" in r:
+            # User accepted the offer to play chess instead
             self.current_game = "chess"
             self.chess_game = ChessGame()
             return (False, f"\n{self.movie_quotes['chess_start']}")
+        # User declined (said NO, or anything else) => start the war
         self.current_game = "nuclear_war"
         self.nuclear_war_sim = NuclearWarSimulation(self)
         return (True, f"\n{self.movie_quotes['war_confirm']}\n\nINITIATING GLOBAL THERMONUCLEAR WAR SIMULATION...\n")
@@ -545,7 +552,6 @@ class WOPR:
         print("\nRUNNING TIC-TAC-TOE LEARNING MODULE...\n")
         time.sleep(1)
 
-        # Play tic-tac-toe games inline (self-play draws)
         ttt = TicTacToe(self)
         ttt._autoplay(games=10, delay=0.1)
 
@@ -607,7 +613,7 @@ class WOPR:
         if low in ("tic-tac-toe", "tic tac toe", "tictactoe"):
             self.current_game = "tictactoe"
             self.tictactoe = TicTacToe(self)
-            return self.tictactoe.play_turn("")  # show board + ask player count
+            return self.tictactoe.play_turn("")
 
         # ----------------------------------------------------------
         # Pending war confirmation ("Wouldn't you prefer chess?")
@@ -682,16 +688,18 @@ def main():
     if not authenticated:
         return
 
-    # Initial game list
+    # Initial game list + selection
     print(wopr.display_game_list(), end="")
     selection = input()
     response = wopr.select_game(selection)
     print(response, end="")
 
+    # If war was selected, set the flag and let the main loop handle the
+    # confirmation response — do NOT consume the next input here.
     if "PREFER" in response:
         wopr.pending_war_confirmation = True
 
-    # Main loop
+    # Main game loop — all further input routes through engage()
     while True:
         try:
             user_input = input()
