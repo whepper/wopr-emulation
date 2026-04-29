@@ -43,6 +43,17 @@ cd wopr-emulation
 python3 wopr.py
 ```
 
+### Faster Playback
+
+Dramatic prompts print one character at a time, like a 1983 modem. To skip the
+teletype effect:
+
+```bash
+python3 wopr.py --fast
+# or
+WOPR_FAST=1 python3 wopr.py
+```
+
 ## 🎮 How to Play
 
 ### The Authentic WarGames Experience
@@ -51,13 +62,33 @@ Follow these steps to recreate the movie's iconic scenes:
 
 #### 1. **System Logon**
 ```
-LOGON: [Enter any name]
-PASSWORD: joshua
+LOGON: joshua
 ```
+
+The system has a single prompt — just like the dial-up backdoor in the movie. Type `joshua` (case-insensitive); WOPR responds with `GREETINGS PROFESSOR FALKEN.` You get 3 attempts before the system locks.
 
 💡 **Movie Fact**: "Joshua" was the name of Professor Falken's deceased son. This backdoor password becomes the key to accessing WOPR in the film.
 
-#### 2. **Game Selection**
+#### 2. **The Opening Conversation**
+
+Before the game list, WOPR runs through its famous greeting:
+
+```
+HOW ARE YOU FEELING TODAY?
+> [type anything]
+
+EXCELLENT. IT'S BEEN A LONG TIME. CAN YOU EXPLAIN
+THE REMOVAL OF YOUR USER ACCOUNT ON 6/23/73?
+> [type anything — e.g., "PEOPLE SOMETIMES MAKE MISTAKES"]
+
+YES THEY DO.
+
+SHALL WE PLAY A GAME?
+```
+
+💡 **Movie Fact**: This exchange is taken directly from the film. WOPR believes you are Professor Falken because of the JOSHUA backdoor.
+
+#### 3. **Game Selection**
 
 WOPR will present you with 15 available games:
 
@@ -73,7 +104,7 @@ Type **15** or **GLOBAL THERMONUCLEAR WAR** to start the simulation.
 
 💡 **Movie Fact**: In the film, David Lightman (Matthew Broderick) searches through WOPR's games and selects Global Thermonuclear War, thinking it's just a computer game.
 
-#### 3. **The Chess Question**
+#### 4. **The Chess Question**
 
 WOPR will ask:
 ```
@@ -84,19 +115,34 @@ Respond with **NO** to continue with the war simulation, or **YES**/**CHESS** to
 
 💡 **Movie Fact**: This line represents WOPR's final attempt to avoid nuclear war after learning its futility.
 
-#### 4. **Launch Code Acquisition**
+#### 5. **Side Selection**
 
-Watch as WOPR attempts to crack the launch codes:
+WOPR will then ask which side you want to play:
+
 ```
-LAUNCH CODE 1/10 ACQUIRED: CPE-1704-TKS
-LAUNCH CODE 2/10 ACQUIRED: DPR-5938-AKL
+WHICH SIDE DO YOU WANT?
+  1. UNITED STATES
+  2. SOVIET UNION
+```
+
+💡 **Movie Fact**: David picks the Soviet Union and targets Las Vegas and Seattle — much to the horror of the NORAD operators watching the simulation.
+
+#### 6. **Launch Code Acquisition**
+
+Watch as WOPR cracks the first 9 codes:
+```
+LAUNCH CODE 1/10 ACQUIRED: DPR-5938-AKL
+LAUNCH CODE 2/10 ACQUIRED: FGH-2847-PLM
 ...
 WARNING: 9 OF 10 LAUNCH CODES ACQUIRED
+SEARCHING FOR FINAL LAUNCH CODE...
 ```
 
-💡 **Movie Fact**: In the film, WOPR cycles through millions of combinations trying to find the launch codes, creating tension as it gets closer to 10/10.
+The climactic 10th code — `CPE-1704-TKS` — is brute-forced character-by-character during the final exchange, just before the learning sequence kicks in.
 
-#### 5. **DEFCON Escalation**
+💡 **Movie Fact**: `CPE-1704-TKS` is the launch code WOPR is racing to crack at the climax of the film.
+
+#### 7. **DEFCON Escalation**
 
 Monitor the Defense Condition levels as tensions rise:
 - **DEFCON 5**: Normal peacetime readiness
@@ -105,11 +151,15 @@ Monitor the Defense Condition levels as tensions rise:
 - **DEFCON 2**: Further increase in force readiness (first strikes)
 - **DEFCON 1**: Maximum readiness (nuclear war imminent)
 
+Each transition rings the terminal bell and shows a banner with the readiness description.
+
 💡 **Movie Fact**: The DEFCON system is real and used by the U.S. military. The film accurately portrays its escalation during a nuclear crisis.
 
-#### 6. **Target Selection**
+#### 8. **Target Selection**
 
-Select Soviet cities as primary targets:
+The target list depends on which side you chose:
+
+**Playing as the United States** — strike Soviet cities:
 ```
 PRIMARY TARGETS SELECTION:
   - MOSCOW
@@ -117,13 +167,21 @@ PRIMARY TARGETS SELECTION:
   - KIEV
   - MINSK
   - TASHKENT
-
-SELECT TARGET: [Type city name]
 ```
 
-Witness the strike, casualty estimates, and Soviet retaliation.
+**Playing as the Soviet Union** — strike American cities (David's path in the film):
+```
+PRIMARY TARGETS SELECTION:
+  - WASHINGTON
+  - NEW YORK
+  - LOS ANGELES
+  - LAS VEGAS
+  - SEATTLE
+```
 
-#### 7. **The Learning Sequence**
+Witness each strike, casualty estimates, and the enemy's retaliation against your own cities.
+
+#### 9. **The Learning Sequence**
 
 After multiple exchanges, WOPR initiates its learning sequence:
 - Analyzes all nuclear war scenarios
@@ -285,10 +343,13 @@ This mirrors the film's implication that certain system commands are never locke
 
 **Chess**:
 - Standard 8×8 board with full piece set
-- Simplified move validation
-- Random-legal-move AI opponent
+- Per-piece move validation (pawns, knights, bishops, rooks, queens, kings)
+  including blocked-path detection and friendly-fire rejection
+- Capture-preferring AI: prefers king-grabs, then any capture, then random legal move
+- Game ends when either king is captured (`CHECKMATE. YOU WIN.` / `I WIN.`)
 - Choose White or Black; WOPR opens if you play Black
 - Algebraic notation input (e.g., `e2 e4`)
+- Note: castling, en passant, and pawn promotion are not implemented
 
 **Tic-Tac-Toe**:
 - Square selection by number 1–9 in all human modes
@@ -344,8 +405,9 @@ This Python implementation aims for **experience accuracy** over technical accur
 
 ## 🐛 Known Limitations
 
-- Chess AI uses random legal moves (not strategic)
-- Chess move validation is simplified (no castling, en passant, or promotion)
+- Chess AI prefers captures but is not a strategic engine (no search depth)
+- Chess move validation does not implement castling, en passant, or promotion
+- No check / checkmate detection — the game ends when a king is captured
 - No network multiplayer
 - No graphics beyond ASCII art
 
@@ -353,7 +415,9 @@ This Python implementation aims for **experience accuracy** over technical accur
 
 Contributions are welcome! Areas for enhancement:
 
-- [ ] More sophisticated chess AI
+- [ ] Stronger chess AI (search depth, basic evaluation)
+- [ ] Castling, en passant, and pawn promotion in chess
+- [ ] Check / checkmate detection (currently game ends on king capture)
 - [ ] Additional game implementations (Falken's Maze, etc.)
 - [ ] Sound effects and audio quotes
 - [ ] Enhanced ASCII graphics/animations
