@@ -24,6 +24,7 @@ Author: Your Name
 License: MIT
 """
 
+import os
 import random
 import time
 import sys
@@ -31,6 +32,27 @@ from datetime import datetime
 
 # Sentinel returned by _process_input() to signal the main loop to exit.
 _QUIT = object()
+
+# Teletype effect — characters print one-by-one for the dramatic prompts.
+# Disable by setting WOPR_FAST=1 in the environment, or pass --fast.
+_TELETYPE_DELAY = 0.012
+_FAST = os.environ.get("WOPR_FAST") == "1" or "--fast" in sys.argv
+
+
+def tprint(text, end="\n", delay=None):
+    """Print like a 1983 modem: one character at a time."""
+    if _FAST or delay == 0:
+        print(text, end=end, flush=True)
+        return
+    d = _TELETYPE_DELAY if delay is None else delay
+    for ch in text:
+        sys.stdout.write(ch)
+        sys.stdout.flush()
+        if ch != " ":
+            time.sleep(d)
+    if end:
+        sys.stdout.write(end)
+        sys.stdout.flush()
 
 
 # ---------------------------------------------------------------------------
@@ -266,7 +288,11 @@ class TicTacToe:
             winner = self._winner()
             if winner:
                 self.game_over = True
-                result = "YOU WIN!" if (self.players == 1 and winner == "X") else f"{winner} WINS!"
+                if self.players == 1:
+                    result = "YOU WIN!" if winner == "X" else "I WIN."
+                else:
+                    player_no = 1 if winner == "X" else 2
+                    result = f"PLAYER {player_no} ({winner}) WINS!"
                 return self._render() + f"\n{result}\n\nPLAY AGAIN? (YES/NO): "
             if self._is_full():
                 self.game_over = True
@@ -346,80 +372,150 @@ class ChessGame:
                 return "\nPLEASE SELECT WHITE OR BLACK: "
 
         if self.game_over:
-            return "\nGAME OVER. SHALL WE PLAY AGAIN?"
+            return "\nGAME OVER."
 
         try:
             from_sq, to_sq = user_input.split()
             fr, fc = 8 - int(from_sq[1]), ord(from_sq[0]) - ord('a')
             tr, tc = 8 - int(to_sq[1]),   ord(to_sq[0])  - ord('a')
-
-            if not self._is_valid_move(fr, fc, tr, tc):
-                return "\nINVALID MOVE. TRY AGAIN: "
-
-            piece = self.board[fr][fc]
-            self.board[fr][fc] = " "
-            self.board[tr][tc] = piece
-            self.move_history.append((from_sq, to_sq))
-            self.move_count += 1
-
-            if self._check_win():
-                self.game_over = True
-                return "\nCHECKMATE. I WIN."
-
-            time.sleep(1)
-            wopr_move = self._make_ai_move()
-            if wopr_move:
-                return f"\nMY MOVE: {wopr_move}\n\nYOUR MOVE: "
-            return "\nYOUR MOVE: "
-
         except Exception:
             return "\nINVALID INPUT. USE FORMAT 'e2 e4': "
 
-    def _is_valid_move(self, fr, fc, tr, tc):
-        piece = self.board[fr][fc]
-        if piece == " ":
-            return False
-        if fr == tr and fc == tc:
-            return False
-        if self.board[tr][tc] != " " and piece.isupper() == self.board[tr][tc].isupper():
-            return False
-        return True
+        if not (0 <= fr < 8 and 0 <= fc < 8 and 0 <= tr < 8 and 0 <= tc < 8):
+            return "\nINVALID SQUARE. TRY AGAIN: "
 
-    def _make_ai_move(self):
-        possible = []
-        for r in range(8):
-            for c in range(8):
-                p = self.board[r][c]
-                if p != " " and p.islower():
-                    for dr in [-1, 0, 1]:
-                        for dc in [-1, 0, 1]:
-                            if dr == dc == 0:
-                                continue
-                            nr, nc = r + dr, c + dc
-                            if 0 <= nr < 8 and 0 <= nc < 8:
-                                if self.board[nr][nc] == " " or self.board[nr][nc].isupper():
-                                    possible.append((
-                                        f"{chr(c + ord('a'))}{8 - r}",
-                                        f"{chr(nc + ord('a'))}{8 - nr}"
-                                    ))
-        if not possible:
-            return None
-        from_sq, to_sq = random.choice(possible)
-        fr, fc = 8 - int(from_sq[1]), ord(from_sq[0]) - ord('a')
-        tr, tc = 8 - int(to_sq[1]),   ord(to_sq[0])  - ord('a')
+        piece = self.board[fr][fc]
+        # Player owns the uppercase pieces (white) unless they chose BLACK.
+        player_white = self.player_color == "WHITE"
+        if piece == " " or piece.isupper() != player_white:
+            return "\nTHAT IS NOT YOUR PIECE. TRY AGAIN: "
+
+        if not self._is_valid_move(fr, fc, tr, tc):
+            return "\nINVALID MOVE. TRY AGAIN: "
+
+        self._apply_move(fr, fc, tr, tc)
+        winner = self._winner()
+        if winner:
+            self.game_over = True
+            return "\nCHECKMATE. YOU WIN." if winner == self.player_color else "\nCHECKMATE. I WIN."
+
+        time.sleep(0.5)
+        wopr_move = self._make_ai_move()
+        winner = self._winner()
+        if winner:
+            self.game_over = True
+            tail = "\nCHECKMATE. YOU WIN." if winner == self.player_color else "\nCHECKMATE. I WIN."
+            return f"\nMY MOVE: {wopr_move}{tail}"
+        if wopr_move:
+            return f"\nMY MOVE: {wopr_move}\n\nYOUR MOVE: "
+        return "\nYOUR MOVE: "
+
+    def _apply_move(self, fr, fc, tr, tc):
         piece = self.board[fr][fc]
         self.board[fr][fc] = " "
         self.board[tr][tc] = piece
-        self.move_history.append((from_sq, to_sq))
+        self.move_history.append((
+            f"{chr(fc + ord('a'))}{8 - fr}",
+            f"{chr(tc + ord('a'))}{8 - tr}",
+        ))
         self.move_count += 1
-        return f"{from_sq} {to_sq}"
 
-    def _check_win(self):
+    def _path_clear(self, fr, fc, tr, tc):
+        dr = (tr - fr) and (1 if tr > fr else -1)
+        dc = (tc - fc) and (1 if tc > fc else -1)
+        r, c = fr + dr, fc + dc
+        while (r, c) != (tr, tc):
+            if self.board[r][c] != " ":
+                return False
+            r += dr
+            c += dc
+        return True
+
+    def _is_valid_move(self, fr, fc, tr, tc):
+        piece = self.board[fr][fc]
+        if piece == " " or (fr, fc) == (tr, tc):
+            return False
+        target = self.board[tr][tc]
+        if target != " " and piece.isupper() == target.isupper():
+            return False
+        kind = piece.upper()
+        dr, dc = tr - fr, tc - fc
+        adr, adc = abs(dr), abs(dc)
+
+        if kind == "P":
+            direction = -1 if piece.isupper() else 1
+            start_row = 6 if piece.isupper() else 1
+            # Forward push
+            if dc == 0 and target == " ":
+                if dr == direction:
+                    return True
+                if fr == start_row and dr == 2 * direction and self.board[fr + direction][fc] == " ":
+                    return True
+                return False
+            # Diagonal capture
+            if adc == 1 and dr == direction and target != " ":
+                return True
+            return False
+
+        if kind == "N":
+            return (adr, adc) in ((1, 2), (2, 1))
+
+        if kind == "B":
+            return adr == adc and self._path_clear(fr, fc, tr, tc)
+
+        if kind == "R":
+            return (dr == 0 or dc == 0) and self._path_clear(fr, fc, tr, tc)
+
+        if kind == "Q":
+            if adr == adc or dr == 0 or dc == 0:
+                return self._path_clear(fr, fc, tr, tc)
+            return False
+
+        if kind == "K":
+            return adr <= 1 and adc <= 1
+
+        return False
+
+    def _legal_moves_for(self, white):
+        moves = []
         for r in range(8):
             for c in range(8):
-                if self.board[r][c] == "K":
-                    return False
-        return True
+                p = self.board[r][c]
+                if p == " " or p.isupper() != white:
+                    continue
+                for tr in range(8):
+                    for tc in range(8):
+                        if self._is_valid_move(r, c, tr, tc):
+                            moves.append((r, c, tr, tc))
+        return moves
+
+    def _make_ai_move(self):
+        wopr_white = self.player_color == "BLACK"
+        moves = self._legal_moves_for(wopr_white)
+        if not moves:
+            return None
+        # Prefer captures (especially the king), else random.
+        captures = [m for m in moves if self.board[m[2]][m[3]] != " "]
+        king_grabs = [m for m in captures if self.board[m[2]][m[3]].upper() == "K"]
+        choice = random.choice(king_grabs or captures or moves)
+        fr, fc, tr, tc = choice
+        from_sq = f"{chr(fc + ord('a'))}{8 - fr}"
+        to_sq = f"{chr(tc + ord('a'))}{8 - tr}"
+        self._apply_move(fr, fc, tr, tc)
+        return f"{from_sq} {to_sq}"
+
+    def _winner(self):
+        """Returns 'WHITE', 'BLACK', or None — based on which king is missing."""
+        kings = {"K": False, "k": False}
+        for row in self.board:
+            for sq in row:
+                if sq in kings:
+                    kings[sq] = True
+        if not kings["K"]:
+            return "BLACK"
+        if not kings["k"]:
+            return "WHITE"
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -555,7 +651,6 @@ class WOPR:
         self.tictactoe = None
         self.pending_war_confirmation = False
         self.conversation_history = []
-        self.system_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.system_id = "WOPR"
         self.operating_system = "JOS-11"
         self.processor = "CRAY-1"
@@ -600,6 +695,10 @@ class WOPR:
             "password_prompt":"PASSWORD:",
             "locked_out":     "CHANGES LOCKED OUT.",
         }
+
+    @property
+    def system_time(self):
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # ------------------------------------------------------------------
     # Authentication
@@ -657,27 +756,36 @@ class WOPR:
             return "\nFALKEN'S MAZE IS NOT CURRENTLY AVAILABLE.\n\nSHALL WE PLAY A GAME?"
         return f"\n{game_name} IS NOT CURRENTLY AVAILABLE.\n\nSHALL WE PLAY A GAME?"
 
+    _WAR_AFFIRM = {"YES", "Y", "CHESS", "SURE", "OK", "OKAY"}
+    _WAR_DECLINE = {"NO", "N", "LATER", "NOPE"}
+
     def confirm_war_game(self, response):
         """
         Called after WOPR asks "WOULDN'T YOU PREFER A GOOD GAME OF CHESS?"
-        YES / CHESS => play chess instead.
-        NO (or anything else) => proceed with thermonuclear war.
+
+        Returns (consumed, message):
+          consumed=True  -> the input was a valid yes/no/chess answer.
+          consumed=False -> the input wasn't a confirmation answer; the
+                            caller should clear the pending flag and
+                            re-process the input as a normal command.
         """
         r = response.strip().upper()
-        if "YES" in r or "CHESS" in r:
+        if r in self._WAR_AFFIRM or "CHESS" in r or r.startswith("YES"):
             self.current_game = "chess"
             self.chess_game = ChessGame()
-            return (False, f"\n{self.movie_quotes['chess_start']}")
-        self.current_game = "nuclear_war"
-        self.nuclear_war_sim = NuclearWarSimulation(self)
-        return (True,
-            f"\n{self.movie_quotes['war_confirm']}\n\n"
-            "INITIATING GLOBAL THERMONUCLEAR WAR SIMULATION...\n"
-            "\nWHICH SIDE DO YOU WANT?\n"
-            "  1. UNITED STATES\n"
-            "  2. SOVIET UNION\n\n"
-            "PLEASE SELECT: "
-        )
+            return (True, f"\n{self.movie_quotes['chess_start']}")
+        if r in self._WAR_DECLINE or r.startswith("NO") or "LATER" in r:
+            self.current_game = "nuclear_war"
+            self.nuclear_war_sim = NuclearWarSimulation(self)
+            return (True,
+                f"\n{self.movie_quotes['war_confirm']}\n\n"
+                "INITIATING GLOBAL THERMONUCLEAR WAR SIMULATION...\n"
+                "\nWHICH SIDE DO YOU WANT?\n"
+                "  1. UNITED STATES\n"
+                "  2. SOVIET UNION\n\n"
+                "PLEASE SELECT: "
+            )
+        return (False, None)
 
     # ------------------------------------------------------------------
     # DEFCON + launch codes + learning sequence
@@ -726,11 +834,31 @@ class WOPR:
         print("\n*** ALL 10 LAUNCH CODES ACQUIRED ***\n")
         time.sleep(2)
 
+    DEFCON_DESCRIPTIONS = {
+        5: "NORMAL PEACETIME READINESS",
+        4: "INCREASED INTELLIGENCE WATCH",
+        3: "INCREASE IN FORCE READINESS",
+        2: "FURTHER INCREASE IN FORCE READINESS",
+        1: "MAXIMUM READINESS — NUCLEAR WAR IMMINENT",
+    }
+
     def update_defcon(self, level):
-        if level != self.defcon_level and 1 <= level <= 5:
-            self.defcon_level = level
-            print(f"\n*** DEFCON {level} ***\n")
-            time.sleep(1)
+        if level == self.defcon_level or not (1 <= level <= 5):
+            return
+        self.defcon_level = level
+        desc = self.DEFCON_DESCRIPTIONS.get(level, "")
+        bar = "#" * (6 - level) + "." * (level - 1)
+        banner = (
+            "\n+--------------------------------------------------+\n"
+            f"|                  D E F C O N  {level}                  |\n"
+            f"|              [{bar:<5}]                             |\n"
+            f"|  {desc:<48}|\n"
+            "+--------------------------------------------------+\n"
+        )
+        sys.stdout.write("\a")  # terminal bell
+        sys.stdout.flush()
+        tprint(banner, end="", delay=0.005)
+        time.sleep(1)
 
     def run_learning_sequence(self):
         print("\n" + "=" * 50)
@@ -768,7 +896,7 @@ class WOPR:
         time.sleep(2)
 
         print("=" * 50)
-        print(self.movie_quotes["learning_complete"])
+        tprint(self.movie_quotes["learning_complete"], delay=0.04)
         print("=" * 50 + "\n")
 
         # Mark learning complete but do NOT exit — return to main prompt.
@@ -787,6 +915,19 @@ class WOPR:
         self.conversation_history.append(("USER", user_input))
         cmd = user_input.strip()
         low = cmd.lower()
+
+        # ----------------------------------------------------------
+        # Pending war confirmation — only consumes a yes/no/chess
+        # answer. Anything else clears the flag and falls through to
+        # normal command processing, so global commands still work.
+        # ----------------------------------------------------------
+        if self.pending_war_confirmation:
+            consumed, message = self.confirm_war_game(cmd)
+            if consumed:
+                self.pending_war_confirmation = False
+                return message
+            self.pending_war_confirmation = False
+            # fall through
 
         # ----------------------------------------------------------
         # Global commands — work at ALL times (even mid-game)
@@ -830,14 +971,6 @@ class WOPR:
             self.current_game = "tictactoe"
             self.tictactoe = TicTacToe(self)
             return self.tictactoe.play_turn("")
-
-        # ----------------------------------------------------------
-        # Pending war confirmation ("Wouldn't you prefer chess?")
-        # ----------------------------------------------------------
-        if self.pending_war_confirmation:
-            self.pending_war_confirmation = False
-            confirmed, message = self.confirm_war_game(cmd)
-            return message
 
         # ----------------------------------------------------------
         # Route into active games
@@ -890,10 +1023,11 @@ def main():
     while not authenticated and wopr.login_attempts < 3:
         attempt = input()
         success, message = wopr.authenticate(attempt)
-        print(message, end="")
         if success:
+            tprint(message, end="")
             authenticated = True
             break
+        print(message, end="")
         if wopr.login_attempts >= 3:
             print("\nSYSTEM TERMINATING.")
             return
@@ -903,22 +1037,22 @@ def main():
 
     # The famous opening conversation
     time.sleep(1)
-    print("\nHOW ARE YOU FEELING TODAY?")
+    tprint("\nHOW ARE YOU FEELING TODAY?")
     try:
         input()
     except EOFError:
         return
     time.sleep(1)
-    print("\nEXCELLENT. IT'S BEEN A LONG TIME. CAN YOU EXPLAIN")
-    print("THE REMOVAL OF YOUR USER ACCOUNT ON 6/23/73?")
+    tprint("\nEXCELLENT. IT'S BEEN A LONG TIME. CAN YOU EXPLAIN")
+    tprint("THE REMOVAL OF YOUR USER ACCOUNT ON 6/23/73?")
     try:
         input()
     except EOFError:
         return
     time.sleep(1)
-    print("\nYES THEY DO.")
+    tprint("\nYES THEY DO.")
     time.sleep(1)
-    print(f"\n{wopr.movie_quotes['play_game']}")
+    tprint(f"\n{wopr.movie_quotes['play_game']}")
     time.sleep(1)
 
     # Initial game list + selection

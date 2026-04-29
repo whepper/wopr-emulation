@@ -38,13 +38,8 @@ DEFENSE SYSTEM ONLINE
 LOGON: 
 ```
 
-**What to do**: Type any username (try "David" or "Professor Falken")
-
-```
-PASSWORD:
-```
-
-**The Key Moment**: Type `joshua` (lowercase)
+**The Key Moment**: Type `joshua` (case-insensitive). There is no separate
+username step — JOSHUA is the backdoor credential, exactly as in the film.
 
 🎬 **Movie Scene**: David Lightman discovers this password by researching Professor Falken's personal life. Joshua was Falken's son who died young. This backdoor password represents Falken's grief and his ultimate loss of faith in his creation.
 
@@ -54,13 +49,27 @@ PASSWORD:
 
 ### Part 2: First Contact
 
+After authentication, WOPR runs through its famous opening exchange:
+
 ```
 GREETINGS PROFESSOR FALKEN.
+
+HOW ARE YOU FEELING TODAY?
+> [type anything — e.g., "I'M FINE. HOW ARE YOU?"]
+
+EXCELLENT. IT'S BEEN A LONG TIME. CAN YOU EXPLAIN
+THE REMOVAL OF YOUR USER ACCOUNT ON 6/23/73?
+> [type anything — e.g., "PEOPLE SOMETIMES MAKE MISTAKES"]
+
+YES THEY DO.
 
 SHALL WE PLAY A GAME?
 ```
 
-🎬 **Movie Scene**: This greeting makes WOPR believe you are Professor Stephen Falken, its creator. The innocent invitation "Shall we play a game?" becomes chilling when the "game" is Global Thermonuclear War.
+These prompts print one character at a time (teletype effect). Pass `--fast`
+or set `WOPR_FAST=1` to speed playback.
+
+🎬 **Movie Scene**: This dialogue is taken directly from the film. WOPR believes you are Professor Stephen Falken, its creator. The innocent invitation "Shall we play a game?" becomes chilling when the "game" is Global Thermonuclear War.
 
 ---
 
@@ -110,62 +119,92 @@ WOULDN'T YOU PREFER A GOOD GAME OF CHESS?
 
 ---
 
-### Part 5: Countdown to Catastrophe
+### Part 5: Choosing Your Side
 
 ```
 FINE.
 
 INITIATING GLOBAL THERMONUCLEAR WAR SIMULATION...
 
-*** DEFCON 4 ***
+WHICH SIDE DO YOU WANT?
+  1. UNITED STATES
+  2. SOVIET UNION
 
-ATTEMPTING TO ACQUIRE LAUNCH CODES...
-
-LAUNCH CODE 1/10 ACQUIRED: CPE-1704-TKS
-LAUNCH CODE 2/10 ACQUIRED: DPR-5938-AKL
-...
+PLEASE SELECT:
 ```
 
-**What's Happening**:
-- **DEFCON 4**: System moves from peacetime to increased alert
-- **Launch Codes**: WOPR is brute-forcing the 10-digit codes needed to launch missiles
-- **Tension Building**: Each code brings it closer to actual launch capability
+**What to do**: Type `1` for the U.S. or `2` for the U.S.S.R. (or the names).
 
-🎬 **Movie Scene**: In NORAD command center, military personnel watch helplessly as WOPR methodically cracks the codes. The tension is palpable as they realize they can't stop it.
-
-**Watch closely**: You'll see 9 out of 10 codes acquired - creating maximum tension.
+🎬 **Movie Scene**: David picks the Soviet Union and targets Las Vegas and Seattle, much to the horror of the NORAD operators watching the simulation unfold on the big board.
 
 ---
 
-### Part 6: Target Selection
+### Part 6: Countdown to Catastrophe
 
+```
+*** DEFCON 4 ***  (banner with terminal bell)
+
+ATTEMPTING TO ACQUIRE LAUNCH CODES...
+
+LAUNCH CODE 1/10 ACQUIRED: DPR-5938-AKL
+LAUNCH CODE 2/10 ACQUIRED: FGH-2847-PLM
+...
+LAUNCH CODE 9/10 ACQUIRED: BCD-7104-FGH
+
+WARNING: 9 OF 10 LAUNCH CODES ACQUIRED
+SEARCHING FOR FINAL LAUNCH CODE...
+```
+
+**What's Happening**:
+- **DEFCON 4**: System moves from peacetime to increased alert (with bell + banner)
+- **Launch Codes**: WOPR brute-forces the 10 codes needed to launch missiles
+- **Tension Building**: 9 of 10 are quickly acquired; the 10th is the climax
+
+🎬 **Movie Scene**: In NORAD command center, military personnel watch helplessly as WOPR methodically cracks the codes. The 10th code (`CPE-1704-TKS` in the film) is the one everyone is racing to stop.
+
+The 10th code is revealed character-by-character later, just as the war exchange peaks — a brute-force animation of `CPE-1704-TKS` typing itself out.
+
+---
+
+### Part 7: Target Selection
+
+The list depends on the side you chose.
+
+**As United States — strike Soviet cities**:
 ```
 *** DEFCON 3 ***
 
 PRIMARY TARGETS SELECTION:
-  - LAS VEGAS
-  - SEATTLE  
-  - NEW YORK
-  - LOS ANGELES
-  - CHICAGO
+  - MOSCOW
+  - LENINGRAD
+  - KIEV
+  - MINSK
+  - TASHKENT
 
 SELECT TARGET:
 ```
 
-**What to do**: Type a city name (e.g., `MOSCOW` or `moscow`)
+**As Soviet Union — strike American cities** (David's path in the film):
+```
+*** DEFCON 3 ***
 
-**Available Soviet Targets**:
-- Moscow (capital)
-- Leningrad (now St. Petersburg)
-- Kiev (Ukraine's capital)
-- Minsk (Belarus)
-- Tashkent (Uzbekistan)
+PRIMARY TARGETS SELECTION:
+  - WASHINGTON
+  - NEW YORK
+  - LOS ANGELES
+  - LAS VEGAS
+  - SEATTLE
+
+SELECT TARGET:
+```
+
+**What to do**: Type a city name (e.g., `LAS VEGAS` or `moscow`).
 
 💡 **Historical Note**: These were real strategic targets during the Cold War. Each city housed military installations, industrial centers, or government facilities.
 
 ---
 
-### Part 7: The Exchange
+### Part 8: The Exchange
 
 ```
 LAUNCHING MISSILES AT MOSCOW...
@@ -179,10 +218,12 @@ CASUALTIES: 2,834,219 ESTIMATED
 ```
 
 **What's Happening**:
-- Your strike hits a Soviet city
+- Your strike hits an enemy city
 - Casualties are estimated (hundreds of thousands to millions)
-- Soviets automatically retaliate against U.S. cities
+- The other side automatically retaliates against your cities
 - The cycle of destruction begins
+
+(If you chose the Soviet Union, *USA RETALIATION DETECTED* will appear instead, with incoming strikes on Moscow, Leningrad, Kiev, etc.)
 
 🎬 **Movie Theme**: This demonstrates Mutual Assured Destruction (MAD) - the doctrine that kept the Cold War "cold." Any first strike guarantees devastating retaliation.
 
@@ -190,7 +231,7 @@ CASUALTIES: 2,834,219 ESTIMATED
 
 ---
 
-### Part 8: Escalation to DEFCON 1
+### Part 9: Escalation to DEFCON 1
 
 ```
 *** DEFCON 2 ***
@@ -218,7 +259,7 @@ PROJECTED OUTCOME: EXTINCTION OF HUMAN SPECIES
 
 ---
 
-### Part 9: The Learning Sequence
+### Part 10: The Learning Sequence
 
 ```
 INITIATING LEARNING SEQUENCE...
@@ -248,7 +289,7 @@ GAME 5: DRAW
 
 ---
 
-### Part 10: The Revelation
+### Part 11: The Revelation
 
 ```
 ANALYSIS COMPLETE.
