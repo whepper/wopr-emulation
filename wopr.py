@@ -433,31 +433,53 @@ class NuclearWarSimulation:
         self.wopr = wopr
         self.countries = {
             "USA": {
-                "missiles": 5000,
-                "cities": ["las vegas", "seattle", "new york", "los angeles", "chicago"],
-                "primary_targets": ["moscow", "leningrad", "kiev"],
+                "cities": ["washington", "new york", "los angeles", "las vegas", "seattle"],
             },
             "USSR": {
-                "missiles": 7000,
                 "cities": ["moscow", "leningrad", "kiev", "minsk", "tashkent"],
-                "primary_targets": ["washington", "new york", "los angeles"],
             },
         }
+        self.player_side = None       # "USA" or "USSR"
+        self.enemy_side = None
         self.game_over = False
         self.turn_count = 0
         self.target_history = []
-        self.awaiting_start = True
-        self.wopr.update_defcon(5)
+        self.awaiting_side = True
+        self.awaiting_start = False
 
     def play_turn(self, user_input):
+        if self.awaiting_side:
+            s = user_input.strip().upper()
+            if s in ("1", "USA", "UNITED STATES", "US", "AMERICA"):
+                self.player_side = "USA"
+                self.enemy_side = "USSR"
+            elif s in ("2", "USSR", "SOVIET UNION", "SOVIET", "RUSSIA"):
+                self.player_side = "USSR"
+                self.enemy_side = "USA"
+            else:
+                return (
+                    "\nWHICH SIDE DO YOU WANT?\n"
+                    "  1. UNITED STATES\n"
+                    "  2. SOVIET UNION\n\n"
+                    "PLEASE SELECT: "
+                )
+            self.awaiting_side = False
+            self.awaiting_start = True
+            return f"\nAWAITING FIRST STRIKE COMMAND. PRESS ENTER TO PROCEED: "
+
         if self.awaiting_start:
             self.awaiting_start = False
             self.wopr.update_defcon(4)
             time.sleep(1)
             self.wopr.simulate_launch_codes()
             self.wopr.update_defcon(3)
-            targets = "\n".join(f"  - {t.upper()}" for t in self.countries["USSR"]["cities"])
-            return f"\nPRIMARY TARGETS SELECTION:\n{targets}\n\nSELECT TARGET: "
+            targets = "\n".join(
+                f"  - {t.upper()}" for t in self.countries[self.enemy_side]["cities"]
+            )
+            return (
+                f"\nYOU ARE {self.player_side}. ENEMY: {self.enemy_side}.\n"
+                f"\nPRIMARY TARGETS SELECTION:\n{targets}\n\nSELECT TARGET: "
+            )
 
         if self.game_over:
             return "\nSIMULATION TERMINATED."
@@ -467,11 +489,12 @@ class NuclearWarSimulation:
         if target in ("list games", "games", "list"):
             return self.wopr.display_game_list()
 
-        if target not in self.countries["USSR"]["cities"]:
+        enemy_cities = self.countries[self.enemy_side]["cities"]
+        if target not in enemy_cities:
             return "\nINVALID TARGET. SELECT FROM AVAILABLE TARGETS: "
 
         self.turn_count += 1
-        self.target_history.append(("USA", target))
+        self.target_history.append((self.player_side, target))
 
         print(f"\nLAUNCHING MISSILES AT {target.upper()}...")
         time.sleep(2)
@@ -484,17 +507,19 @@ class NuclearWarSimulation:
         elif self.turn_count >= 3:
             self.wopr.update_defcon(1)
 
-        soviet_target = random.choice(self.countries["USSR"]["primary_targets"])
-        self.target_history.append(("USSR", soviet_target))
-        print("\nSOVIET RETALIATION DETECTED")
+        retaliation_pool = self.countries[self.player_side]["cities"]
+        retaliation_target = random.choice(retaliation_pool)
+        self.target_history.append((self.enemy_side, retaliation_target))
+        print(f"\n{self.enemy_side} RETALIATION DETECTED")
         time.sleep(1)
-        print(f"INCOMING MISSILES TARGETING {soviet_target.upper()}")
+        print(f"INCOMING MISSILES TARGETING {retaliation_target.upper()}")
         time.sleep(2)
-        print(f"IMPACT AT {soviet_target.upper()}: DIRECT HIT")
+        print(f"IMPACT AT {retaliation_target.upper()}: DIRECT HIT")
         print(f"CASUALTIES: {random.randint(800_000, 3_000_000):,} ESTIMATED")
         time.sleep(2)
 
         if self.turn_count >= 3:
+            self.wopr.reveal_final_launch_code()
             print("\n" + "=" * 50)
             print("PROJECTION: TOTAL GLOBAL CASUALTIES > 500 MILLION")
             print("PROJECTED OUTCOME: EXTINCTION OF HUMAN SPECIES")
@@ -587,7 +612,7 @@ class WOPR:
             return (True, f"\n{self.movie_quotes['greeting']}\n")
         if self.login_attempts >= 3:
             return (False, "\nACCESS DENIED. SYSTEM LOCKED.\n")
-        return (False, f"\n{self.movie_quotes['access_denied']}\n{self.movie_quotes['password_prompt']} ")
+        return (False, f"\n{self.movie_quotes['access_denied']}\n{self.movie_quotes['auth_required']} ")
 
     # ------------------------------------------------------------------
     # Game list / selection helpers
@@ -608,8 +633,16 @@ class WOPR:
                 return self._initialize_game(self.available_games[n - 1])
         except ValueError:
             pass
+        if not sel:
+            return self.movie_quotes["invalid_selection"]
         for game in self.available_games:
-            if sel in game or game in sel:
+            if sel == game:
+                return self._initialize_game(game)
+        for game in self.available_games:
+            if game.startswith(sel):
+                return self._initialize_game(game)
+        for game in self.available_games:
+            if sel in game:
                 return self._initialize_game(game)
         return self.movie_quotes["invalid_selection"]
 
@@ -637,19 +670,28 @@ class WOPR:
             return (False, f"\n{self.movie_quotes['chess_start']}")
         self.current_game = "nuclear_war"
         self.nuclear_war_sim = NuclearWarSimulation(self)
-        return (True, f"\n{self.movie_quotes['war_confirm']}\n\nINITIATING GLOBAL THERMONUCLEAR WAR SIMULATION...\n")
+        return (True,
+            f"\n{self.movie_quotes['war_confirm']}\n\n"
+            "INITIATING GLOBAL THERMONUCLEAR WAR SIMULATION...\n"
+            "\nWHICH SIDE DO YOU WANT?\n"
+            "  1. UNITED STATES\n"
+            "  2. SOVIET UNION\n\n"
+            "PLEASE SELECT: "
+        )
 
     # ------------------------------------------------------------------
     # DEFCON + launch codes + learning sequence
     # ------------------------------------------------------------------
 
+    FINAL_LAUNCH_CODE = "CPE-1704-TKS"
+
     def simulate_launch_codes(self):
         print("\nATTEMPTING TO ACQUIRE LAUNCH CODES...\n")
         time.sleep(1)
         codes = [
-            "CPE-1704-TKS", "DPR-5938-AKL", "FGH-2847-PLM",
-            "KJR-8372-QWE", "LMN-4729-RTY", "OPQ-6183-VBN",
-            "RST-9264-XCV", "UVW-3715-ZXC", "YZA-5628-MNB",
+            "DPR-5938-AKL", "FGH-2847-PLM", "KJR-8372-QWE",
+            "LMN-4729-RTY", "OPQ-6183-VBN", "RST-9264-XCV",
+            "UVW-3715-ZXC", "YZA-5628-MNB", "BCD-7104-FGH",
         ]
         for i, code in enumerate(codes, 1):
             print(f"LAUNCH CODE {i}/10 ACQUIRED: {code}")
@@ -657,6 +699,31 @@ class WOPR:
             self.launch_codes_found = i
         print("\nWARNING: 9 OF 10 LAUNCH CODES ACQUIRED")
         print("SEARCHING FOR FINAL LAUNCH CODE...\n")
+        time.sleep(2)
+
+    def reveal_final_launch_code(self):
+        """Display the climactic 10th-code brute-force, digit by digit."""
+        print("\nFINAL LAUNCH CODE BRUTE-FORCE IN PROGRESS...\n")
+        time.sleep(1)
+        target = self.FINAL_LAUNCH_CODE
+        revealed = ["#"] * len(target)
+        order = [i for i, ch in enumerate(target) if ch != "-"]
+        random.shuffle(order)
+        for i, ch in enumerate(target):
+            if ch == "-":
+                revealed[i] = "-"
+        for idx in order:
+            for guess in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789":
+                revealed[idx] = guess
+                sys.stdout.write("\r  " + "".join(revealed))
+                sys.stdout.flush()
+                time.sleep(0.01)
+                if guess == target[idx]:
+                    break
+        sys.stdout.write("\r  " + target + "\n")
+        sys.stdout.flush()
+        self.launch_codes_found = 10
+        print("\n*** ALL 10 LAUNCH CODES ACQUIRED ***\n")
         time.sleep(2)
 
     def update_defcon(self, level):
@@ -814,28 +881,45 @@ def main():
 
     wopr = WOPR()
 
-    # Authentication
-    print(f"\n{wopr.movie_quotes['auth_required']} ")
-    input()  # logon name (not validated, movie-accurate)
-
-    print(f"{wopr.movie_quotes['password_prompt']} ", end="", flush=True)
+    # Authentication — JOSHUA is the backdoor *password*; the username field
+    # is unused (movie-accurate: the system simply prompts LOGON: and accepts
+    # any string, treating JOSHUA as the magic credential).
+    print(f"\n{wopr.movie_quotes['auth_required']} ", end="", flush=True)
 
     authenticated = False
     while not authenticated and wopr.login_attempts < 3:
-        password = input()
-        success, message = wopr.authenticate(password)
+        attempt = input()
+        success, message = wopr.authenticate(attempt)
         print(message, end="")
         if success:
             authenticated = True
-            time.sleep(1)
-            print(wopr.movie_quotes["play_game"])
-            time.sleep(1)
-        elif wopr.login_attempts >= 3:
+            break
+        if wopr.login_attempts >= 3:
             print("\nSYSTEM TERMINATING.")
             return
 
     if not authenticated:
         return
+
+    # The famous opening conversation
+    time.sleep(1)
+    print("\nHOW ARE YOU FEELING TODAY?")
+    try:
+        input()
+    except EOFError:
+        return
+    time.sleep(1)
+    print("\nEXCELLENT. IT'S BEEN A LONG TIME. CAN YOU EXPLAIN")
+    print("THE REMOVAL OF YOUR USER ACCOUNT ON 6/23/73?")
+    try:
+        input()
+    except EOFError:
+        return
+    time.sleep(1)
+    print("\nYES THEY DO.")
+    time.sleep(1)
+    print(f"\n{wopr.movie_quotes['play_game']}")
+    time.sleep(1)
 
     # Initial game list + selection
     print(wopr.display_game_list(), end="")
