@@ -32,7 +32,7 @@ Before you begin, set the mood for an authentic 1983 experience:
 ### Part 1: Breaking In (Authentication)
 
 ```
-WOPR (War Operation Plan Response)
+WOPR (War Operation Plan Response)  ::  2026-06-20  21:38:14
 DEFENSE SYSTEM ONLINE
 
 LOGON: 
@@ -55,7 +55,10 @@ After authentication, WOPR runs through its famous opening exchange:
 GREETINGS PROFESSOR FALKEN.
 
 HOW ARE YOU FEELING TODAY?
-> [type anything — e.g., "I'M FINE. HOW ARE YOU?"]
+> [type anything — e.g., "I'm fine"]
+
+I'M FINE. HOW ARE YOU?
+> [type anything — WOPR's reply is the same regardless of what you say]
 
 EXCELLENT. IT'S BEEN A LONG TIME. CAN YOU EXPLAIN
 THE REMOVAL OF YOUR USER ACCOUNT ON 6/23/73?
@@ -69,7 +72,7 @@ SHALL WE PLAY A GAME?
 These prompts print one character at a time (teletype effect). Pass `--fast`
 or set `WOPR_FAST=1` to speed playback.
 
-🎬 **Movie Scene**: This dialogue is taken directly from the film. WOPR believes you are Professor Stephen Falken, its creator. The innocent invitation "Shall we play a game?" becomes chilling when the "game" is Global Thermonuclear War.
+🎬 **Movie Scene**: This dialogue is taken directly from the film. WOPR believes you are Professor Stephen Falken, its creator. WOPR's non-sequitur "I'M FINE. HOW ARE YOU?" — said regardless of what you typed — is one of the film's most memorable exchanges. The innocent invitation "Shall we play a game?" becomes chilling when the "game" is Global Thermonuclear War.
 
 ---
 
@@ -142,7 +145,12 @@ PLEASE SELECT:
 ### Part 6: Countdown to Catastrophe
 
 ```
-*** DEFCON 4 ***  (banner with terminal bell)
++----------------------------------------------------+
+|                   D E F C O N  4                   |
+|  [##...]                                           |
+|  INCREASED INTELLIGENCE WATCH                      |
++----------------------------------------------------+
+   (banner is preceded by a terminal bell)
 
 ATTEMPTING TO ACQUIRE LAUNCH CODES...
 
@@ -172,7 +180,11 @@ The list depends on the side you chose.
 
 **As United States — strike Soviet cities**:
 ```
-*** DEFCON 3 ***
++----------------------------------------------------+
+|                   D E F C O N  3                   |
+|  [###..]                                           |
+|  INCREASE IN FORCE READINESS                       |
++----------------------------------------------------+
 
 PRIMARY TARGETS SELECTION:
   - MOSCOW
@@ -186,7 +198,11 @@ SELECT TARGET:
 
 **As Soviet Union — strike American cities** (David's path in the film):
 ```
-*** DEFCON 3 ***
++----------------------------------------------------+
+|                   D E F C O N  3                   |
+|  [###..]                                           |
+|  INCREASE IN FORCE READINESS                       |
++----------------------------------------------------+
 
 PRIMARY TARGETS SELECTION:
   - WASHINGTON
@@ -207,13 +223,15 @@ SELECT TARGET:
 ### Part 8: The Exchange
 
 ```
+[NORAD] TRACKING 14 INCOMING — IMPACT IN 90 SECONDS.
+
 LAUNCHING MISSILES AT MOSCOW...
 IMPACT AT MOSCOW: DIRECT HIT
 CASUALTIES: 1,247,832 ESTIMATED
 
 SOVIET RETALIATION DETECTED
 INCOMING MISSILES TARGETING NEW YORK
-IMPACT AT NEW YORK: DIRECT HIT  
+IMPACT AT NEW YORK: DIRECT HIT
 CASUALTIES: 2,834,219 ESTIMATED
 ```
 
@@ -234,7 +252,11 @@ CASUALTIES: 2,834,219 ESTIMATED
 ### Part 9: Escalation to DEFCON 1
 
 ```
-*** DEFCON 2 ***
++----------------------------------------------------+
+|                   D E F C O N  2                   |
+|  [####.]                                           |
+|  FURTHER INCREASE IN FORCE READINESS               |
++----------------------------------------------------+
 
 SELECT NEXT TARGET:
 ```
@@ -244,7 +266,11 @@ SELECT NEXT TARGET:
 After 2-3 exchanges:
 
 ```
-*** DEFCON 1 ***
++----------------------------------------------------+
+|                   D E F C O N  1                   |
+|  [#####]                                           |
+|  MAXIMUM READINESS — NUCLEAR WAR IMMINENT          |
++----------------------------------------------------+
 
 PROJECTION: TOTAL GLOBAL CASUALTIES > 500 MILLION
 PROJECTED OUTCOME: EXTINCTION OF HUMAN SPECIES
@@ -270,10 +296,12 @@ SIMULATING: U.S. FIRST STRIKE... PROJECTED OUTCOME: TOTAL ANNIHILATION
 SIMULATING: SOVIET FIRST STRIKE... PROJECTED OUTCOME: TOTAL ANNIHILATION
 SIMULATING: NATO CONFLICT ESCALATION... PROJECTED OUTCOME: TOTAL ANNIHILATION
 ...
+
+IS THIS A GAME OR IS IT REAL?
 ```
 
-**What's Happening**: 
-WOPR is running through every possible nuclear war scenario, learning that they all end the same way.
+**What's Happening**:
+WOPR is running through every possible nuclear war scenario, learning that they all end the same way. After the last scenario, the screen pauses and the line **"IS THIS A GAME OR IS IT REAL?"** prints in slow teletype.
 
 ```
 RUNNING TIC-TAC-TOE LEARNING MODULE...
@@ -294,10 +322,14 @@ GAME 5: DRAW
 ```
 ANALYSIS COMPLETE.
 
+5...4...3...2...1...
+
 A STRANGE GAME. THE ONLY WINNING MOVE IS NOT TO PLAY.
 
 HOW ABOUT A NICE GAME OF CHESS?
 ```
+
+The **"5...4...3...2...1..."** is the cinematic countdown that leads into the punchline. Each tick is one second long, building tension just as in the film.
 
 **The Meaning**:
 - **Strange Game**: War presented as a game is absurd
@@ -315,8 +347,14 @@ HOW ABOUT A NICE GAME OF CHESS?
 
 1. Authenticate with `joshua`
 2. Select game `7` (CHESS)
-3. Choose WHITE or BLACK
-4. Play using algebraic notation: `e2 e4`
+3. WOPR prints a flavor line and asks WHITE or BLACK:
+   ```
+   A GAME OF CHESS IS A BATTLE OF LOGIC AND PATIENCE. NEITHER SIDE CAN AFFORD A MISCALCULATION.
+
+   EXCELLENT. A GAME OF CHESS. WHITE OR BLACK?
+   ```
+4. Choose WHITE or BLACK
+5. Play using algebraic notation: `e2 e4`
 
 **Chess Moves Format**:
 - `e2 e4` - Move piece from e2 to e4
@@ -327,11 +365,38 @@ HOW ABOUT A NICE GAME OF CHESS?
 ### Playthrough 3: Exploration
 
 Try selecting different games from the menu:
-- `1` - FALKEN'S MAZE (not available, but try it!)
+- `1` - FALKEN'S MAZE — now fully playable! 5x5 grid, race WOPR to the center.
 - `9` - FIGHTER COMBAT
 - `14` - THEATERWIDE BIOTOXIC AND CHEMICAL WARFARE
 
-See WOPR's responses to unavailable games.
+Most non-WOPR games respond with "X IS NOT CURRENTLY AVAILABLE." Just like
+in the movie, where the rest of the catalogue is locked out.
+
+### Playthrough 3.5: Falken's Maze
+
+After authenticating, type `play 1` or `1` to start Falken's Maze. You start
+in the bottom-left corner (`P`), WOPR starts in the top-right (`W`), and the
+goal is the center (`*`). Move with N/S/E/W. First to reach the center wins:
+
+```
+  0 1 2 3 4
+ +---------+
+0|. . . . W|0
+1|. . . . .|1
+2|. . * . .|2
+3|. . . . .|3
+4|P . . . .|4
+ +---------+
+  0 1 2 3 4
+
+YOUR MOVE (N/S/E/W):
+```
+
+### Playthrough 3.6: The Falken Reveal
+
+At any prompt, type `who is falken` to learn the truth about Professor
+Falken — and to discover that he's dead. The reveal is shown only once;
+subsequent queries will be declined.
 
 ### Playthrough 4: Failed Authentication
 

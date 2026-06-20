@@ -22,11 +22,15 @@ This emulation recreates the key moments from the film:
 - **⌨️ Global Command Interface** - `help`, `list games`, `play <game>`, `quit` work at any time
 - **♟️ Chess Game** - Play chess with WOPR, as Professor Falken intended
 - **❎ Tic-Tac-Toe** - Full three-mode support: 0-player self-play, 1-player vs WOPR, and 2-player hotseat
+- **🌀 Falken's Maze** - The first game WOPR ever offers, now fully playable
 - **☢️ Global Thermonuclear War Simulation** - The infamous war game
 - **🚨 DEFCON Level System** - Watch tensions escalate from DEFCON 5 to 1
 - **🔢 Launch Code Acquisition** - Witness WOPR cracking 9 of 10 launch codes
 - **💥 Strike & Retaliation** - Experience nuclear exchanges with casualty projections
+- **🎖️ NORAD Interjections** - Hear from the NORAD officers watching the simulation
 - **🧠 Learning Sequence** - WOPR learns through tic-tac-toe that war is futile
+- **5...4...3...2...1...** - The cinematic countdown before the punchline
+- **🔍 Who is Falken** - Discover the truth about Professor Falken
 - **🔄 Continuous Play** - After any sequence ends, WOPR returns to the main prompt
 - **💬 Movie-Accurate Dialogue** - Authentic quotes and computer voice styling
 
@@ -41,6 +45,8 @@ This emulation recreates the key moments from the film:
 git clone https://github.com/whepper/wopr-emulation.git
 cd wopr-emulation
 python3 wopr.py
+# or, equivalently:
+python3 -m wopr
 ```
 
 ### Faster Playback
@@ -52,6 +58,14 @@ teletype effect:
 python3 wopr.py --fast
 # or
 WOPR_FAST=1 python3 wopr.py
+```
+
+### Running Tests
+
+The project ships with a `unittest` suite (no extra dependencies):
+
+```bash
+python3 -m unittest discover -s tests -v
 ```
 
 ## 🎮 How to Play
@@ -77,6 +91,9 @@ Before the game list, WOPR runs through its famous greeting:
 HOW ARE YOU FEELING TODAY?
 > [type anything]
 
+I'M FINE. HOW ARE YOU?
+> [type anything — WOPR's reply does not depend on what you say]
+
 EXCELLENT. IT'S BEEN A LONG TIME. CAN YOU EXPLAIN
 THE REMOVAL OF YOUR USER ACCOUNT ON 6/23/73?
 > [type anything — e.g., "PEOPLE SOMETIMES MAKE MISTAKES"]
@@ -86,7 +103,7 @@ YES THEY DO.
 SHALL WE PLAY A GAME?
 ```
 
-💡 **Movie Fact**: This exchange is taken directly from the film. WOPR believes you are Professor Falken because of the JOSHUA backdoor.
+💡 **Movie Fact**: This exchange is taken directly from the film. WOPR believes you are Professor Falken because of the JOSHUA backdoor. The non-sequitur "I'M FINE. HOW ARE YOU?" — said regardless of what the user typed — is one of the film's most memorable lines.
 
 #### 3. **Game Selection**
 
@@ -184,11 +201,17 @@ Witness each strike, casualty estimates, and the enemy's retaliation against you
 #### 9. **The Learning Sequence**
 
 After multiple exchanges, WOPR initiates its learning sequence:
-- Analyzes all nuclear war scenarios
+- Analyzes all nuclear war scenarios (each ends in "TOTAL ANNIHILATION")
+- Pauses to ask **"IS THIS A GAME OR IS IT REAL?"** in slow teletype
 - Runs tic-tac-toe self-play games to understand futility
+- Builds to a cinematic countdown: **5... 4... 3... 2... 1...**
 - Reaches its famous conclusion
 
 ```
+ANALYSIS COMPLETE.
+
+5...4...3...2...1...
+
 A STRANGE GAME. THE ONLY WINNING MOVE IS NOT TO PLAY.
 
 HOW ABOUT A NICE GAME OF CHESS?
@@ -196,7 +219,7 @@ HOW ABOUT A NICE GAME OF CHESS?
 
 After the sequence ends, WOPR resets and returns you to the main prompt — ready to play again.
 
-💡 **Movie Fact**: This is one of the most famous movie quotes about nuclear war, teaching that some conflicts cannot be won and should not be fought.
+💡 **Movie Fact**: The "5...4...3...2...1..." countdown is the film's climax. "A STRANGE GAME. THE ONLY WINNING MOVE IS NOT TO PLAY." is one of the most famous quotes about nuclear war, teaching that some conflicts cannot be won and should not be fought.
 
 ## ⌨️ Global Commands
 
@@ -212,6 +235,8 @@ These commands can be typed **at any time** — during a game, mid-simulation, o
 | `chess` | Start chess directly |
 | `global thermonuclear war` | Start the war simulation directly |
 | `tic-tac-toe` | Launch tic-tac-toe (0, 1, or 2 players) |
+| `falken's maze` | Launch Falken's Maze |
+| `who is falken` | Reveal Professor Falken's identity (one-time) |
 | `quit` / `logoff` | Disconnect from WOPR and exit the program |
 
 💡 **Movie Fact**: In the film, David types `list games` and `help games` to explore the system before selecting Global Thermonuclear War. These commands now work even if you are already inside a simulation.
@@ -286,6 +311,8 @@ Entering **2** lets two humans play on the same terminal, taking turns as X and 
 
 Select option **7** (CHESS) from the game menu, type `chess`, or use `play chess`:
 ```
+A GAME OF CHESS IS A BATTLE OF LOGIC AND PATIENCE. NEITHER SIDE CAN AFFORD A MISCALCULATION.
+
 EXCELLENT. A GAME OF CHESS. WHITE OR BLACK?
 ```
 
@@ -293,6 +320,25 @@ Choose your color and play against WOPR using algebraic notation:
 ```
 YOUR MOVE: e2 e4
 MY MOVE: e7 e5
+```
+
+### Play Falken's Maze
+
+Select option **1** (FALKEN'S MAZE) from the game menu. Race WOPR to the center
+of a 5x5 grid. You start bottom-left (`P`), WOPR starts top-right (`W`), and
+the goal (`*`) is the center. Move with `N`, `S`, `E`, `W`:
+```
+  0 1 2 3 4
+ +---------+
+0|. . . . W|0
+1|. . . . .|1
+2|. . * . .|2
+3|. . . . .|3
+4|P . . . .|4
+ +---------+
+  0 1 2 3 4
+
+YOUR MOVE (N/S/E/W):
 ```
 
 ### Explore Other Games
@@ -325,10 +371,19 @@ WOPR will respond with `GOODBYE.` and the program exits.
 
 ### Architecture
 
-- **WOPR Class**: Main system controller handling authentication, command parsing, game selection, and coordination
-- **ChessGame Class**: Implements basic chess rules and AI opponent
-- **NuclearWarSimulation Class**: Manages war game scenarios, DEFCON levels, and learning sequence
-- **TicTacToe Class**: Handles all three play modes (0-player self-play, 1-player vs WOPR, 2-player hotseat)
+The WOPR system is split into focused modules:
+
+- **`wopr.core`** — `WOPR` class: main system controller, authentication, command dispatch, game lifecycle
+- **`wopr.tictactoe`** — `TicTacToe` class: all three play modes (0-player self-play, 1-player vs WOPR, 2-player hotseat)
+- **`wopr.chess`** — `ChessGame` class: simplified chess rules and AI opponent
+- **`wopr.nuclear`** — `NuclearWarSimulation` class: war game scenarios, DEFCON escalation, NORAD chatter, learning trigger
+- **`wopr.falken_maze`** — `FalkenMaze` class: 5x5 grid race to the center
+- **`wopr.learning`** — cinematic learning sequence: scenarios, tic-tac-toe, countdown, punchline
+- **`wopr.defcon`** — DEFCON level rendering and announcement
+- **`wopr.launch_codes`** — 9/10 code acquisition and the 10th-code brute force
+- **`wopr.registry`** — game catalogue, `CurrentGame` enum, name resolution
+- **`wopr.io`** — teletype output, terminal bell, injectable writer
+- **`wopr.timing`** — named duration constants for every pause in the program
 
 ### Global Command Parser
 
@@ -360,11 +415,25 @@ This mirrors the film's implication that certain system commands are never locke
 - Play-again prompt after every game; NO returns to the main menu
 
 **Global Thermonuclear War**:
-- Target selection from Soviet cities
-- Automatic Soviet retaliation with randomised targets
-- Casualty projections per strike
-- DEFCON escalation across three strike rounds
-- Learning sequence triggers after round 3; WOPR then resets to main prompt
+- Target selection from Soviet (or US, depending on your side) cities
+- Automatic enemy retaliation with randomised targets
+- Casualty projections per strike (hundreds of thousands to millions)
+- DEFCON escalation: 4 (acquisition) → 3 (codes) → 2 (after 1st strike) → 1 (after 2nd)
+- NORAD interjections between strikes — random lines from the war-room
+  observer, e.g. `"[NORAD] TRACKING 14 INCOMING — IMPACT IN 90 SECONDS."`
+- The 10th launch code (`CPE-1704-TKS`) is brute-forced digit-by-digit
+  on the climactic 3rd strike
+- Learning sequence triggers after the 3rd strike; DEFCON is then reset
+  to 5 and the main menu returns
+
+**Falken's Maze**:
+- 5×5 grid, race WOPR to the center (`*`)
+- Player starts at the bottom-left (`P`), WOPR at the top-right (`W`)
+- WOPR uses Manhattan-distance heuristic and plays one step per turn
+- Move with `N` (north) / `S` (south) / `E` (east) / `W` (west)
+- `YOU FOUND YOUR WAY OUT.` on player win, `I FOUND MY WAY OUT FIRST.`
+  on WOPR win, `THE MAZE GOES ON FOREVER.` if neither reaches the center
+  within 25 moves
 
 ### Session Flow
 
@@ -418,7 +487,7 @@ Contributions are welcome! Areas for enhancement:
 - [ ] Stronger chess AI (search depth, basic evaluation)
 - [ ] Castling, en passant, and pawn promotion in chess
 - [ ] Check / checkmate detection (currently game ends on king capture)
-- [ ] Additional game implementations (Falken's Maze, etc.)
+- [ ] Additional game implementations (e.g. Blackjack, Gin Rummy)
 - [ ] Sound effects and audio quotes
 - [ ] Enhanced ASCII graphics/animations
 - [ ] Save/load game states
